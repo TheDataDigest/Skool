@@ -1,0 +1,8 @@
+"0","DT::datatable(data = skool1000_dt, options = list(
+  autoWidth = TRUE,
+  columnDefs = list(list(width = '200px', targets = ""5""))
+))
+"
+"2","Error in convertIdx(targets, names) : 
+  Some column names in the 'escape' argument not found in data
+"

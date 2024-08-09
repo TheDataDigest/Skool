@@ -1,0 +1,90 @@
+---
+title: "Skool Communities Analysis"
+title-block-banner: "#f0f3f5"
+title-block-banner-color: "black"
+subtitle: "Describing the top 1000 skool communities (8.8.2024)" 
+
+author: 
+  name: "Torsten Blass"
+  affiliation: "https://www.youtube.com/c/TheDataDigest"
+  email: contact@thedatadigest.email
+
+
+keywords: "Quarto, skool.com"
+date: today
+
+fig-cap-location: margin
+format: 
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+editor: source
+
+---
+
+# Setup & Loading data
+```{r packages, message=F, warning=F}
+library(tidyverse)
+library(DT)            # interactive tables
+library(knitr)         # static table with the kable() function
+library(plotly)        # interactive graphs
+library(scales)
+
+# Read the clean dataset
+skool1000 <- readRDS(file = "E:/The Data Digest/GitHub/Skool/input/skool1000.RDS") %>% 
+  select(-c(members_cleaned, language_textcat, language_cld2, language_cld3))
+```
+
+
+
+## Interactive scatter plot
+```{r members_vs_price, cache=F, warning = FALSE, echo=FALSE, message=FALSE, fig.height=6, fig.width=9, fig.align='center', fig.cap= "Fig.1 - Scatterplot"}
+
+library(plotly)
+skool1000_price <- skool1000 %>% 
+  filter(!is.na(price))
+
+skool1000_price$hover_label <- paste0(skool1000_price$community,"\nMembers: ",skool1000_price$members_n, "\nPrice: $", skool1000_price$price, "\nRank: ", skool1000_price$ranking)
+
+g1 <- skool1000_price %>% 
+  filter(!is.na(price)) %>% 
+  ggplot(aes(x = members_n, y = price, text = hover_label, color = privacy)) +
+  geom_point(size = 1.5, alpha = 0.8) +
+  scale_x_log10() +
+  scale_y_log10(labels = scales::dollar) +
+  labs(x = "# of members (log10)", y="Price in USD (log10)", subtitle = "Top 1000 communities (8.8.2024)") +
+  annotation_logticks()  +
+  theme_bw()
+
+# Customize the hover label appearance
+p_interactive <- ggplotly(g1, tooltip = "text") %>%
+  layout(
+    hoverlabel = list(
+      bgcolor = "lightyellow",  
+      font = list(family = "Arial", size = 16, color = "black")  
+    ) )
+
+# Display the interactive plot
+ggplotly(p_interactive)
+
+```
+
+
+::: {.callout-caution collapse="true"}
+## Raw data of top 1000 communities (8.8.2024)
+I will update these every other day.
+:::
+
+```{r top1000_table, cache=FALSE, echo=FALSE, message=FALSE}
+
+skool1000_dt <- skool1000 %>% 
+  select("rank" = id, community, "members" = members_n, "access" = access2, price, "language" = language_long, description)
+
+
+DT::datatable(skool1000_dt, filter = "top", selection = "multiple", caption = "The top 1000 skool.com communities, based on 8.8.2024 webscraping",
+              options = list(
+                  autoWidth = TRUE,
+                  columnDefs = list(list(width = '5000px', targets = 7)),
+                  pageLength = 20))
+```
+

@@ -1,0 +1,126 @@
+Language detection can sometimes be challenging, especially with short texts or text that contains multiple languages. Here are some strategies and parameters you can use to improve language detection accuracy:
+
+### 1. **Adjusting Parameters in `textcat`**
+
+The `textcat` package doesn’t have many parameters to adjust directly, but you can improve accuracy by ensuring you have sufficient and varied text data. If you're working with short or sparse text, consider using longer text samples or combining multiple text sources.
+
+### 2. **Using `cld2` or `cld3`**
+
+Both `cld2` and `cld3` packages provide language detection with different levels of precision. They may be more robust in detecting languages compared to `textcat`.
+
+#### Using `cld2`:
+
+```r
+# Install and load cld2
+install.packages("cld2")
+library(cld2)
+```{r}
+
+```
+
+# Detect language with cld2
+data_separated <- data_separated %>%
+  mutate(Language = sapply(Description, function(text) cld2::detect_language(text)$language))
+```
+
+#### Using `cld3`:
+
+```r
+```{r}
+
+# Install and load cld3
+install.packages("cld3")
+library(cld3)
+
+# Detect language with cld3
+skool_df$lang_desc <- cld3::detect_language(skool_df$description) 
+skool_df$lang_comm <- cld3::detect_language(skool_df$community) 
+
+
+skool_df %>%
+  mutate(Language = sapply(description, function(text) cld3::detect_language(text)$language))
+```
+
+### 3. **Using `langdetect` Package**
+
+The `langdetect` package is an R interface to the `langdetect` Python library, which often performs well with varied text inputs.
+
+```r
+# Install and load langdetect
+install.packages("langdetect")
+library(langdetect)
+
+# Detect language with langdetect
+data_separated <- data_separated %>%
+  mutate(Language = sapply(Description, function(text) langdetect::detect(text)$language))
+```
+
+### 4. **Combining Results**
+
+You can use multiple language detection tools and combine their results to improve accuracy. For instance, you can apply both `cld2` and `textcat`, and choose the most common result or handle discrepancies as needed.
+
+### 5. **Ensure Adequate Text Length**
+
+Short texts or texts with mixed languages can be difficult to detect accurately. Ensure that the text samples are sufficiently long and clear. For very short texts, consider aggregating them to improve detection reliability.
+
+### 6. **Handle Edge Cases**
+
+If certain languages are frequently misidentified, you may need to handle these cases separately by applying additional rules or manual corrections based on known patterns.
+
+### Example of Combining Multiple Detectors:
+
+```r
+library(cld2)
+library(textcat)
+library(dplyr)
+
+# Detect language with multiple methods
+data_separated <- data_separated %>%
+  mutate(
+    cld2_lang = sapply(Description, function(text) cld2::detect_language(text)$language),
+    textcat_lang = sapply(Description, function(text) textcat::textcat(text))
+  )
+
+# Combine or adjust results as needed
+data_separated <- data_separated %>%
+  mutate(
+    Final_Language = case_when(
+      cld2_lang == "en" ~ "English",
+      textcat_lang == "english" ~ "English",
+      TRUE ~ "Unknown"
+    )
+  )
+
+# Display the updated data frame
+print(data_separated)
+
+
+### Summary
+
+Experiment with different language detection packages and adjust the parameters or methods according to your specific needs. Combining results from multiple detectors and ensuring adequate text length can significantly improve accuracy.
+
+skool_df$price2 <- skool_df$price
+skool_df$price2[is.na(skool_df$price)] <- 0
+
+skool_df %>% ggplot(aes(x = numeric_members, y = price2)) +
+  geom_point() +
+  scale_x_log10() +
+  scale_y_log10()
+  
+  
+sum(str_detect(skool_df$community, pattern = "ACADEMY"))
+74+1+5
+
+sum(str_detect(skool_df$community, pattern = "COMMUNITY"))
+1+67+1
+
+sum(str_detect(skool_df$community, pattern = "School"))
+31+2
+
+sum(str_detect(skool_df$community, pattern = "TRIBE"))
+11 + 2
+
+sum(str_detect(skool_df$community, pattern = "GANG"))
+4
+
+
