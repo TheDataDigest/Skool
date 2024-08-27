@@ -1,5 +1,5 @@
 ---
-title: "Skool Communities Names"
+title: "Skool Community Names"
 title-block-banner: "#f0f3f5"
 title-block-banner-color: "black"
 subtitle: "Analyzing 3706 communitiy names by search terms (2024-08-22)" 
