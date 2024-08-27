@@ -1,0 +1,512 @@
+---
+title: "Skool Communities Names"
+title-block-banner: "#f0f3f5"
+title-block-banner-color: "black"
+subtitle: "Analyzing 3706 community by Title Name (2024-08-22)" 
+author: 
+  name: "Torsten Blass"
+  affiliation: "https://www.youtube.com/c/TheDataDigest"
+  email: contact@thedatadigest.email
+keywords: "Quarto, skool.com, group search terms"
+date: today
+fig-cap-location: margin
+format: 
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+    toc: true
+    toc-title: " "
+    toc-location: left
+    toc-expand: true
+    toc-depth: 2
+    number-sections: true
+editor: source
+execute:
+  warning: false
+---
+
+
+```{r, message=FALSE, echo = FALSE}
+library(tidyverse)
+library(reactablefmtr)
+library(plotly)
+library(DT)
+library(forcats)
+library(tidytext)
+library(stringr)
+library(patchwork)
+library(shiny)
+library(scales)
+library(plotly)
+
+options(scipen = 999)
+
+search_BU <- readRDS(file = "E:/The Data Digest/GitHub/Skool/input/skool_search_BU_2024-08-25.RDS")
+
+search_unique <- readRDS(file = "E:/The Data Digest/GitHub/Skool/input/skool_search_unique_hit_2024-08-25.RDS")
+
+multi_search_hit <- readRDS(file = "E:/The Data Digest/GitHub/Skool/input/skool_multi_search_hit_2024-08-25.RDS")
+
+search_unique_hit <- readRDS(file = "E:/The Data Digest/GitHub/Skool/input/skool_search_unique_hit_2024-08-25.RDS") %>% ungroup()
+
+search_terms_community <- c("academy", "agency", "bootcamp", "brand", "brotherhood", "business", "circle", "club", "collective", "community", "crew", "dojo", "elite","empire", "family", "forum", "gang", "generation", "group", "guild", "herd", "home","kingdom", "klub", "lab", "league", "legion", "masterclass", "mastermind", "movement","nation", "preschool", "school", "skool", "society", "squad","startup", "studio", "system", "team", "tribe", "university", "workshop")
+
+
+search_BU$access <- search_BU$access2 
+search_BU$access[search_BU$access2 != "Free"] <- "Paid"
+search_unique$access <- search_unique$access2 
+search_unique$access[search_unique$access2 != "Free"] <- "Paid"
+multi_search_hit$access <- multi_search_hit$access2 
+multi_search_hit$access[multi_search_hit$access2 != "Free"] <- "Paid"
+search_unique_hit$access <- search_unique$access2 
+search_unique_hit$access[search_unique$access2 != "Free"] <- "Paid"
+```
+
+## Main Findings
+
+I searched the skool.com discovery page for the following 43 search terms that relate to a **group** in a wider sense:
+
+::: callout-note
+### Community Search Terms
+
+The group names were: `r paste(search_terms_community, collapse = ", ")`
+:::
+
+In this article I show what the most common community names are and how they differ in terms of members and subscription price. You can use the interactive table to filter for specific group names.
+
+When I check that the search term appears in the community name I have `{r} nrow(search_unique_hit)` unique communities to analyze.
+
+Most of the groups (91.5%) are set to private. 52.3% are free communities, 37.6% (1395) provided the USD subscription fee and the rest (10.1%) is paid without further details.
+
+Here is an overview:
+
+```{r, message=FALSE, echo = FALSE}
+intro_table <- search_unique_hit %>% count(privacy, access2) %>% 
+  pivot_wider(names_from = access2, values_from = n)
+
+knitr::kable(intro_table)
+```
+
+It shows that we have 1331 communties that provided a price point for their monthly subscription.
+
+#### Distribution of membership numbers
+
+```{r, echo=FALSE, message=F}
+free_cut_member <- search_unique_hit %>% filter(access2 == "Free") %>% 
+  pull(members_n) %>% cut(breaks = c(0,10,50,100,500,1000,5000,10000,100000,1000000)) %>% 
+  table() %>% as.data.frame()
+free_cut_member$percent <- paste0(round(free_cut_member$Freq/sum(free_cut_member$Freq)*100,1),"%")
+
+
+paid_cut_member <- search_unique_hit %>% filter(access2 != "Free") %>% 
+  pull(members_n) %>% cut(breaks = c(0,10,50,100,500,1000,5000,10000,100000,1000000)) %>% 
+  table() %>% as.data.frame()
+paid_cut_member$percent <- paste0(round(paid_cut_member$Freq/sum(paid_cut_member$Freq)*100,1),"%")
+
+
+member_distribution <- cbind(free_cut_member, paid_cut_member[,-1])
+names(member_distribution) <- c("Member interval", "Free communities", "% Free", "Paid communities", "% Paid")
+member_distribution[,1] <- c("1-10", "11-50", "51-100", "101-500", "501-1000", "1001-5000", "5001-10000", "10k-100k", "100k-1mio")
+
+#DT::datatable(member_distribution)
+knitr::kable(member_distribution, align=rep('c', 5))
+```
+
+The median free community has `r search_unique_hit %>% filter(access2 == "Free") %>% pull(members_n) %>% median()` members, which is 35 more than the paid communities median of `r search_unique_hit %>% filter(access2 != "Free") %>% pull(members_n) %>% median()`.
+
+We can visualize the distribution of members in a histogram:
+
+```{r, message=F, echo = FALSE}
+search_unique_hit %>% 
+  ggplot(aes(x = members_n, fill = access)) +
+  geom_histogram(show.legend = FALSE, color = "black") + 
+  scale_x_log10(breaks=c(1,5,10,25,50,100,250,500,1000,5000,50000), limits=c(1,200000)) +
+  facet_wrap(~access, nrow = 2, scales = "free_x") +
+  theme_minimal() +
+  labs(x="Members (log10)")
+```
+
+#### Distribution of paid subscription prices
+
+```{r, message=F, echo = FALSE}
+paid_cut_prices <- search_unique_hit %>% filter(access2 != "Free") %>% 
+  pull(price) %>% cut(breaks = c(0,10,20,30,40,50,90,100,250,500,1000)) %>% 
+  table() %>% as.data.frame()
+paid_cut_prices$percent <- paste0(round(paid_cut_prices$Freq/sum(paid_cut_prices$Freq)*100,1),"%")
+names(paid_cut_prices) <- c("Price interval", "Paid communities", "% Paid price")
+paid_cut_prices[,1] <- c("$1-$10", "$11-$20", "$21-$30","$31-$40","$41-$50","$51-$90","$91-$100", "$101-$250", "$251-$500", "$501-$1000")
+
+knitr::kable(paid_cut_prices, align=rep('c', 3))
+```
+
+Again we can visualize the distribution of subscription prices in a histogram:
+
+```{r, message=F, echo = FALSE}
+search_unique_hit %>% 
+  ggplot(aes(x = price)) +
+  geom_histogram(show.legend = FALSE, fill= "lightblue", color = "black") + 
+  scale_x_log10(labels = scales::dollar, breaks=c(1,10,50,100,500,1000)) + 
+  theme_minimal() +
+  labs(x="Monthly subscription price in USD (log10)")
+```
+
+There are 28 \$1, 22 $999 communites but 41 communities with >\$990 prices. And the \$29 (63x), the \$49 (91x) and the \$99 (74x) are some distinct price options.
+
+Start with a table of serach terms (4 columns) and how many communities exist. Should be over 10k. There will be an interactive table where you see all communities for a given search term (nested table). Find yours! Then say for further analysis everything with less than 10 hits will be grouped into others. Give overview of percent-vs-public and free-paid-paid_USD per term. Already in top table 2x7 columns. Then show boxplot of members
+
+If you want analysis on differnt search terms, or want to learn how to do these kind of analysis, or have any other kind of data you want analyzed hit send me a dm or join my free community.
+
+Next analysis will be about the skool games (after the August winners are in).
+
+
+## Some group names differ drastically with regards to access (free vs. paid)
+
+```{r, message=F, echo = FALSE}
+temp_access <- search_unique_hit %>% group_by(search) %>% add_count() %>% 
+  filter(n >10) %>% 
+  mutate(group_label = paste0(search, " (", n, ")")) %>% group_by(group_label, n) %>% 
+  count(access) %>% mutate(pct = nn/n)
+
+free_order <- temp_access %>% filter(access == "Free") %>% arrange(pct) %>% pull(group_label)
+
+temp_access$group_label <- factor(temp_access$group_label, levels = free_order)
+
+temp_access %>% 
+  ggplot(aes(x = pct, y = group_label, fill = access, label = pct)) +
+  geom_col(position = "stack") + 
+  geom_text(aes(label = scales::percent(x = pct, accuracy = 1)), 
+            position = position_stack(vjust = .5), size = 3)+
+  #scale_x_continuous(limits = c(0,1), expand = c(0,0)) +
+  scale_x_reverse(limits = c(1,0), expand = c(0,0)) +
+    theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  labs(x="", y="", subtitle = "Startup, Forum, Guild and Bootcamp lead as free communities,\nwhereas Circle, Dojo, Club, and University are more often paid communities")
+```
+
+## "Community" is the name that has the most members for free and paid communities
+
+```{r, warning=F, echo=F}
+p1_free <- multi_search_hit %>%  filter(access == "Free") %>% 
+  group_by(search) %>% add_count() %>% 
+  filter(n >20) %>% 
+  mutate(group_label = paste0(search, " (", n, ")")) 
+  
+p1_member_order <- p1_free %>% group_by(group_label) %>% summarize(median = median(members_n)) %>% arrange(median) %>% mutate(color1 = hue_pal()(23))
+
+group_labels_order <- p1_member_order %>% pull(group_label)
+p1_free$group_labels_order <- factor(p1_free$group_label, levels = group_labels_order)
+
+p1_free <- p1_free %>% left_join(p1_member_order)
+
+p1_free %>% 
+  ggplot(aes(x = members_n, y = group_labels_order, fill = color1, color = color1)) +
+  geom_boxplot(alpha = 0.5, show.legend = FALSE) +
+  scale_x_log10(breaks=c(1,10,50,100,500,1000,5000,10000,50000,200000)) +
+  theme_minimal() +
+#  scale_color_manual(values = hue_pal()(23)) +
+#  annotation_logticks(sides = "b") +
+  labs(x="No. of members", y="Search term in free community name (N)", subtitle = "Boxplot of top-23 free communities arranged by descending median number of members")
+```
+
+### Circle, Masterclass and lab are relatively small for free and paid communities
+
+```{r, message=F, echo = FALSE}
+## repeat for paid
+p2_paid <- multi_search_hit %>%  filter(access == "Paid") %>% 
+  group_by(search) %>% add_count() %>% 
+  filter(n >15) %>% 
+  mutate(group_label = paste0(search, " (", n, ")")) 
+  
+p2_member_order <- p2_paid %>% group_by(group_label) %>% summarize(median = median(members_n)) %>% arrange(median) %>% mutate(color2 = hue_pal()(24))
+
+group_labels_order <- p2_member_order %>% pull(group_label)
+p2_paid$group_labels_order <- factor(p2_paid$group_label, levels = group_labels_order)
+
+p2_paid <- p2_paid %>% left_join(p2_member_order)
+
+p2_paid %>% 
+  ggplot(aes(x = members_n, y = group_labels_order, fill = color2, color = color2)) +
+  geom_boxplot(alpha = 0.5, show.legend = FALSE) +
+  scale_x_log10(breaks=c(1,10,50,100,500,1000,5000,10000,50000,200000)) +
+  theme_minimal() +
+#  scale_color_manual(values = hue_pal()(23)) +
+#  annotation_logticks(sides = "b") +
+  labs(x="No. of members", y="Search term in paid community name (N)", subtitle = "Boxplot of top-24 paid communities arranged by descending median number of members")
+```
+
+## Price point box plots by search term
+
+Find a way to sort by mean? median often at around 99USD
+
+```{r, warning=F, echo=F}
+#multi_search_hit %>% filter(access == "Paid") %>% count(search, sort = T) # top 19 are >18 (26 for system and business)
+
+multi_df_paid_USD <- multi_search_hit %>% filter(access2 == "Paid_USD") %>% 
+  mutate(group = fct_lump(search, n = 17)) %>%
+  add_count(group) %>% 
+  mutate(group_label = paste0(str_to_title(group), " (", n, ")"))
+
+multi_avg_price <- multi_df_paid_USD %>% 
+  group_by(group, group_label) %>% 
+  summarise(avg_price = round(mean(price, na.rm=T),2),
+            median_price = median(price, na.rm=T))
+
+multi_df_paid_USD <- multi_df_paid_USD %>% left_join(multi_avg_price)
+
+group_levels_order <- multi_avg_price %>% arrange(median_price) %>% pull(group)
+multi_df_paid_USD$group <- factor(multi_df_paid_USD$group, levels = group_levels_order)
+
+group_labels_order <- multi_avg_price %>% arrange(median_price) %>% pull(group_label)
+multi_df_paid_USD$group_labels_order <- factor(multi_df_paid_USD$group_label, levels = group_labels_order)
+
+multi_df_paid_USD %>% 
+  ggplot(aes(x = price, y = group_labels_order, fill = group_labels_order, color = group_labels_order)) +
+  geom_boxplot(alpha = 0.5, show.legend = FALSE) +
+  scale_x_log10(labels = scales::dollar_format(accuracy = 1), breaks=c(1,10,25,50,100,250,500,1000)) +
+  theme_minimal() +
+#  annotation_logticks(sides = "b") +
+  labs(x="", y="Search term in community name", title = "Boxplot of top-19 paid community prices arranged by descending median price", subtitle = "(No.) represents the no. of communities with search term in name that show $/month")
+
+
+```
+
+#### Table of group values
+
+```{r, message=F, echo = FALSE}
+multi_table <- multi_search_hit %>% filter(access2 == "Paid_USD") %>% 
+  group_by(search) %>% summarize(N = n(), Min_USD = min(price),
+Q25_USD = quantile(price, probs=0.25), Median_USD = median(price),
+Mean_USD = round(mean(price), 1), Q75_USD = quantile(price, probs=0.75),
+Max_USD = max(price)) %>% arrange(desc(N))
+
+DT::datatable(data = multi_table, options = list(pageLength = 15))
+```
+
+The table is sorted by N (groups with search term in title), but you can click into the column names to sort them based on average prices as well. Academies, Clubs, School and University all stay below `$100` on average. But Circle, Mastermind, Elite, Agency and Masterclass go above `$100` on average. The "Skool" term has some very high paid groups that increase the average to over 200 USD but the median of 57 USD is only slightly above the overall median price of 48 USD.
+
+## Heatmap Cut price ranges table % for different names, always show N for term
+
+```{r, message=FALSE, echo = FALSE}
+heatmap_df <- multi_search_hit %>% filter(access2 == "Paid_USD") %>% 
+  group_by(search) %>% 
+  mutate(group = fct_lump(search, n = 20)) %>%
+  add_count(group) %>% 
+  mutate(group_label = paste0(str_to_title(group), " (", n, ")"),
+         price_cut = cut(price, breaks = c(0,25,50,100,500,1000)))
+heatmap_df$price_cut <- factor(heatmap_df$price_cut, labels = c("$1-$25","$26-$50","$91-$100", "$101-$500", "$501-$1000"))
+
+heatmap_df %>% count(group_label, price_cut) %>% add_count(wt = n) %>% 
+  mutate(pct = n/nn) %>% 
+  filter(nn >= 20) %>% 
+  ggplot(aes(x = price_cut, y = group_label, 
+             label = pct, fill = pct)) +
+  geom_tile(color = "grey") +
+  scale_fill_continuous(low = "orange", 
+                        high = "darkgreen", 
+                        name = "percent of\nprices:") + 
+  geom_text(aes(label = scales::percent(x = pct, accuracy = 0.1)), color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  labs(x = "Price interval", y = "Search term in community name (N)", subtitle = "Top 16 community search names and their distribution of subscription prices.\n Rows add up to 100%")
+
+```
+
+## Interactive scatter plot for "academy" search term
+
+There will be an interactive scatter plot with a drop down menu for the other 42 search terms hosted on a reactive server.
+
+```{r, message=FALSE, echo = FALSE}
+academy_df <- multi_search_hit %>% filter(search == "academy", access2 == "Paid_USD") %>% 
+  mutate(hover_label = paste0(community,"\nMembers: ",members_n, "\nPrice: $", price, "\nRank: ", ranking)) 
+
+g1 <- academy_df %>% ggplot(aes(x = members_n, y = price, text = hover_label)) +
+  geom_point(size = 1.5, alpha = 0.8) +
+  scale_x_log10(limits = c(1, 10000)) +
+  scale_y_log10(labels = scales::dollar) +
+  labs(x = "# of members (log10)", y="Price in USD (log10)", 
+       subtitle = "404 paid communities with 'academy' in title (22.8.2024)") +
+  theme_bw()
+
+# Customize the hover label appearance
+p_interactive <- ggplotly(g1, tooltip = "text") %>%
+  layout(
+    hoverlabel = list(
+      bgcolor = "lightyellow",  
+      font = list(family = "Arial", size = 16, color = "black")  
+    ) )
+
+# Display the interactive plot
+p_interactive
+```
+
+## Communities Name competition, which search term is in title %
+
+The table below shows how many results you get per search term on the discovery page. The max is 1000 hits over 34 pages.
+When I check that the search term actually appears in the community name I can calculate the "hit"-percentage.
+For **klub** I got 14 communities with 12 containing the search term in the name which makes it an 86% hit rate.
+When you search for ** business** you get 1000 communities but only 51 have **business** in their name which makes it a low hit-rate of only 5.1%. **meets** (0.5%) and **workshop** (1.1%) are even lower.
+
+```{r, message=FALSE, echo = FALSE}
+search_rate <- search_BU %>% filter(search != "preschool") %>%
+  group_by(search) %>% 
+  summarize(N_search = n(),
+            N_term_in_title = sum(term_in_title),
+            hit_rate = round(mean(term_in_title), 3) * 100) %>% 
+  arrange(desc(hit_rate))
+
+reactable(data = search_rate, 
+  defaultPageSize = 15, 
+  defaultColDef = colDef(vAlign="center", align="center", headerVAlign="center"))
+```
+
+
+## How often have communities the same name
+
+From the searches during the middle of August 2024 I found 39 community names that appeared more than once.
+
+```{r, message=FALSE, echo = FALSE}
+table <- search_unique_hit %>% count(community) %>% filter(n >1) %>% arrange(desc(n))
+
+reactable(data = table, defaultPageSize = 13)
+```
+
+#### Here are some examples
+
+The most common name is "Inner Circle", toggle the boxes below to see some examples.
+
+::: {.callout-note collapse="true" appearance="default"}
+### Click to see 8 examples of "Inner Circle" and 6 examples of "The Inner Circle"
+
+![5 communities named brotherhood](images/same_name_inner_circle.png)
+:::
+
+::: {.callout-note collapse="true" appearance="default"}
+### Click to see 5 examples of communities named "The Brotherhood"
+
+![5 communities named brotherhood](images/same_name_brotherhood.png)
+:::
+
+::: {.callout-note collapse="true" appearance="default"}
+### Click to see 8 examples of "Inner Circle" and 6 examples of "The Inner Circle"
+
+![5 communities named brotherhood](../../images/same_name_inner_circle.png)
+:::
+
+::: {.callout-note collapse="true" appearance="default"}
+### Click to see 8 examples of "Inner Circle" and 6 examples of "The Inner Circle"
+
+![5 communities named brotherhood](images/same_name_inner_circle.png)
+:::
+
+## Communities that show up the most for different search terms
+
+When I search based on the 44 different group names there are some communities that appear several times. Because their name either contains multiple terms, like **Elite community masterclass** or because the discovery algorithm also covers the description and about page.
+Around ~25% of communities only appear once in discovery. It is extremely rare to appear five or more times.
+
+Histogramm of average search term appearances on the discovery pages:
+```{r, warning=F, echo=F}
+search_BU$temp <- paste0(search_BU$community, search_BU$access)
+
+#search_BU %>% count(temp, sort = T)
+
+search_BU %>% count(temp) %>% count(n) %>% 
+  ggplot(aes(y = nn, x = n)) +
+  geom_col(fill = "grey", color = "black") +
+  scale_x_continuous(breaks = 1:10) +
+  theme_bw() + labs(x = 'No. of search terms a community "hits"', y="",
+                    subtitles = "Histogram of communities appearing on average\nfor the 44 different search terms")
+```
+
+The most "discovered" community is **Acquisition university** also called *Hormozi Community*. It appeared on 10 different search terms, see table below:
+
+```{r, warning=F, echo=F}
+multi_hit_groups <- c("Acquisition University", "Elite Influencer Coaching", "Gary Club", "The Digital University")
+
+table <- search_BU %>% filter(community %in% multi_hit_groups) %>% 
+  group_by(community, access, price) %>% 
+  summarize(N=n(), search_terms = paste0(search, collapse = ", "))
+
+table2 <- search_BU %>% filter(community == "Elevate Academy" & access != "Free") %>% 
+  group_by(community, access, price) %>% 
+  summarize(N=n(), search_terms = paste0(search, collapse = ", "))
+
+table <- bind_rows(table, table2)
+
+table$members_n <- search_unique_hit$members_n[match(table$community, search_unique_hit$community)]
+
+knitr::kable(table %>% select(community, members_n, everything()))
+
+xx <- search_BU %>% count(community) %>% arrange(desc(n)) %>% filter(n >= 8) %>% pull(community)
+
+#add for which search terms these were shown within the top1000 of discovery (34 pages)
+#careful with same names
+
+Gary_club_search_8 <- search_BU %>% filter(community == "Gary Club") %>% pull(search) %>% paste0(collapse = ", ")
+
+Elite_Influencer_Coaching_8 <- search_BU %>% filter(community == "Elite Influencer Coaching") %>% pull(search) %>% paste0(collapse = ", ")
+
+Acquisition_University_10 <- search_BU %>% filter(community == "Acquisition University") %>% pull(search) %>% paste0(collapse = ", ")
+
+The_Digital_University_8 <- search_BU %>% filter(community == "The Digital University") %>% pull(search) %>% paste0(collapse = ", ")
+
+Elevate_Academy_7 <- search_BU %>% filter(community == "Elevate Academy" & access != "Free") %>% pull(search) %>% paste0(collapse = ", ")
+```
+
+## Nested interactive table with raw data (multiple search hits)
+
+```{r, warning=F, echo=F}
+
+multi_summary <- multi_search_hit %>% group_by(search) %>% 
+  summarize(N=n(), `%_Free` = round(mean(access == "Free")*100, 1), 
+            max_member = max(members_n),
+            mean_member = round(mean(members_n), 1),
+            median_member = median(members_n),
+            max_price = max(price, na.rm=T),
+            mean_price = round(mean(price, na.rm=T), 0),
+            median_price = median(price, na.rm=T))
+
+multi_search_hit2 <- multi_search_hit %>% 
+  select("ranking" = id, community, members_n, access2, price, search, id)
+
+table <- reactable(
+  defaultPageSize = 15, 
+  data = multi_summary,
+  defaultColDef = colDef(vAlign="center", align="center", headerVAlign="center"),
+  details = function(index){
+    new = multi_search_hit2[multi_search_hit2$search == multi_summary$search[index],]
+    reactable(data=new, defaultPageSize = 20)})
+                
+table         
+```
+
+## Nested interactive table with paid communities (multiple search hits)
+
+```{r, warning=F, echo=F}
+multi_summary2 <- multi_search_hit %>% 
+  filter(access2 == "Paid_USD") %>% group_by(search) %>% 
+  summarize(N=n(), 
+            max_member = max(members_n),
+            mean_member = round(mean(members_n), 1),
+            median_member = median(members_n),
+            max_price = max(price, na.rm=T),
+            mean_price = round(mean(price, na.rm=T), 0),
+            median_price = median(price, na.rm=T))
+
+multi_search_hit3 <- multi_search_hit %>% 
+  filter(access2 == "Paid_USD") %>% 
+  select("ranking" = id, community, members_n, price, search) 
+  
+
+table2 <- reactable(
+  defaultPageSize = 15, 
+  data = multi_summary2,
+  defaultColDef = colDef(vAlign="center", align="center", headerVAlign="center"),
+  details = function(index){
+    new = multi_search_hit3[multi_search_hit3$search == multi_summary$search[index],]
+    reactable(data=new, defaultPageSize = 20)})
+                
+table2         
+```
+
+

@@ -1,0 +1,1063 @@
+
+##-----------------------------------------##
+#  Heatmaps with geom_tile() and heatmap()  #
+##_________________________________________##
+
+# https://www.https://www.r-graph-gallery.com/heatmap.html
+# https://www.https://www.data-to-viz.com/graph/heatmap.html
+
+rm(list=ls())
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+library(tidyverse); library(readxl)
+
+# 1) Mapping annual and seasonal temperatures of the US
+library(usmap)
+library(scales)
+
+View(US_temp_annual)
+
+# basic annual temperature map
+plot_usmap(data = US_temp_annual, 
+           regions = "states",
+           values = "temp_F", 
+           labels = TRUE)
+
+# advanced annual temperature map
+library(ggplot2)
+plot_usmap(data = US_temp_annual, regions = "states",
+           values = "temp_F", labels = TRUE) +
+  scale_fill_continuous(low = "green", 
+                        high = "red", 
+                        name = "Temperature in °F") + 
+  labs(title = "United States average annual temperature [°F]") +
+  theme(legend.position = "right")
+
+# advanced annual temperature map - legend steps
+plot_usmap(data = US_temp_annual, regions = "states",
+           exclude = c("Alaska", "Hawaii"),
+           values = "temp_F", labels = TRUE) +
+  scale_fill_stepsn(n.breaks = 7, 
+                    colors = c("lightgreen", "red"), 
+                    name = "Temperature in °F") + 
+  labs(title = "United States average annual temperature [°F]",
+       subtitle = "Excluding Alaska and Hawaii") +
+  theme(legend.position = "right")
+
+## 1b) Facet wrap seasons ----
+
+View(US_temp_seasonal)
+library(forcats)
+US_temp_seasonal <- US_temp_seasonal %>% 
+  mutate(season = factor(season, levels = c("spring", "summer", "fall", "winter")))
+
+
+plot_usmap(data = US_temp_seasonal, regions = "states", 
+           exclude = c("Alaska", "Hawaii", "DC"),  
+           values = "temp_F") +
+  facet_wrap(~ season, ncol = 2) +
+  scale_fill_stepsn(n.breaks = 12, 
+                    colors = c("lightgreen", "red"), 
+                    name = "Temperature in °F") + 
+  labs(title = "United States average seasonal temperatures [°F]",
+       subtitle = "Excluding Alaska and Hawaii") +
+  theme(legend.position = "right")
+
+# 1c) Celcius ----
+US_temp_seasonal <- US_temp_seasonal %>% 
+  mutate(temp_C = (temp_F -32) *5/9)
+
+plot_usmap(data = US_temp_seasonal, regions = "states", exclude = c("Alaska", "Hawaii", "DC"),  values = "temp_C") +
+  facet_wrap(~ season, ncol = 2)+
+  scale_fill_stepsn(n.breaks = 10, colors = c("lightgreen", "red"), name = "Temperature in °C") + 
+  labs(title = "United States average seasonal temperatures [°C]",
+       subtitle = "Excluding Alaska and Hawaii") +
+  theme(legend.position = "right")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 2) using geom_tile() - imdb ratings ----
+View(imdb_BrBa); View(imdb_GoT)
+
+# transform from wide to long
+imdb_BrBa_long <- imdb_BrBa %>% pivot_longer(-Episode) %>% 
+  set_names(c("episode", "season", "rating")) %>% 
+  mutate(rating = rating/10)
+
+imdb_GoT_long <- imdb_GoT %>% pivot_longer(-Episode) %>% set_names(c("episode", "season", "rating")) %>% mutate(rating = rating/10)
+
+imdb_Ozark_long <- imdb_Ozark %>% pivot_longer(-Episode) %>% set_names(c("episode", "season", "rating")) %>% mutate(rating = rating/10)
+
+
+# breaking bad (blank)
+imdb_BrBa_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(fill = "white", color = "grey") +
+  geom_text() +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") 
+
+
+# game of thrones (blank)
+imdb_GoT_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(fill = "white", color = "grey") +
+  geom_text() +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") 
+
+
+## 2b) adding colors ----
+imdb_BrBa_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_continuous(low = "orange", 
+                        high = "darkgreen", 
+                        name = "imdb rating") + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") 
+
+
+imdb_GoT_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_continuous(low = "orange", 
+                        high = "darkgreen", 
+                        name = "imdb rating") + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top")
+
+mean(imdb_BrBa_long$rating, na.rm = TRUE)
+# [1] 9.025806
+mean(imdb_GoT_long$rating, na.rm = TRUE)
+# [1] 8.832877
+
+## 2c) setting colors to fixed values for comparisons ----
+
+# 2 solutions - 1/2 combine data sets
+imdb_rating_combined <- imdb_BrBa_long %>% 
+  mutate(series = "Breaking Bad") %>% 
+  rbind(imdb_GoT_long %>% 
+          mutate(series = "Game of Thrones"))
+
+View(imdb_rating_combined)
+
+
+imdb_rating_combined %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_continuous(low = "orange", 
+                        high = "darkgreen", 
+                        name = "imdb rating",
+                        limits = c(7,10)) + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  facet_wrap(~ series, scales = "free")
+  
+# 2 solutions - # 2/2 - fixing the scale
+
+imdb_BrBa_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  # scale_fill_continuous(low = "orange", 
+  #                       high = "darkgreen", 
+  #                       name = "imdb rating",
+  #                       limits = c(4, 10)) + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") -> BrBa_plot
+
+BrBa_plot + 
+  scale_fill_continuous(low = "orange", 
+                        high = "darkgreen", 
+                        name = "imdb rating",
+                        limits = c(4, 10))
+
+
+
+
+
+
+
+
+BrBa_plot + 
+  scale_fill_gradient2(low = "red", 
+                       mid = "orange", 
+                       high = "darkgreen", 
+                       name = "imdb rating", 
+                       midpoint = 7,
+                       limits = c(4,10))
+
+
+imdb_GoT_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_gradient2(low = "red", 
+                       mid = "orange", high = "darkgreen", 
+                       name = "imdb rating", midpoint = 7,
+                       limits = c(4,10)) + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") 
+
+imdb_Ozark_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_gradient2(low = "red", mid = "orange", 
+                       high = "darkgreen", 
+                       name = "imdb rating", 
+                       midpoint = 7,
+                       limits = c(4,10)) + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") 
+
+mean(imdb_Ozark_long$rating, na.rm = TRUE)
+#[1] 8.516216
+
+imdb_rating_combined2 <- imdb_rating_combined %>% 
+  rbind(imdb_Ozark_long %>% 
+          mutate(series = "Ozark"))
+
+imdb_rating_combined2 %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_gradient2(low = "red", mid = "orange", 
+                       high = "darkgreen", 
+                       name = "imdb rating", 
+                       midpoint = 7,
+                       limits = c(4,10)) + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  #  facet_wrap(~ series)
+  facet_wrap(~ series, scales = "free_x")
+
+
+
+
+## 3) heatmap() basics with mtcars ----
+
+data <- as.matrix(mtcars)
+
+heatmap(x = data) 
+
+# Use 'scale' to normalize
+heatmap(data, scale = "column")
+
+# No dendrogram or reordering for columns or rows
+heatmap(data, Colv = NA, Rowv = NA, scale = "column")
+heatmap(data, Rowv = NA, scale="column")
+
+
+heatmap(data, scale="column", 
+        main = "mtcars dataset", 
+        xlab = "car-asteristics")
+
+?heatmap 
+
+
+## 4) Advanced heatmap() with NBA player stats ----
+
+View(NBA_average)
+str(NBA_average)
+
+heatmap(nba_heatmap, scale="column", 
+        cexRow = 0.4, cexCol = 0.8)
+
+# a) filter for the top 16 teams that made it to the play-offs
+playoff_teams <- c("PHI", "BRK", "ATL", "MIL", "UTA", "LAC", "PHO", "DEN", "WAS", "BOS", "NYK", "MIA", "MEM", "DAL", "LAL", "POR")
+
+#c) filter for players that played at least 18 minutes per game 
+NBA_average %>% 
+  filter(MP > 18, G >= 60, 
+         Tm %in% playoff_teams) %>% count(Pos)
+
+
+nba <- NBA_average %>% 
+  filter(MP > 18, G >= 60, 
+         Tm %in% playoff_teams) %>% 
+  mutate(pos_name = paste(Pos, Player, sep = " - "),
+         side_color = case_when(
+           Pos == "C" ~ "red",
+           Pos == "PG" ~ "blue", 
+           Pos == "SG" ~ "lightblue", 
+           Pos == "PF" ~ "darkgreen", 
+           Pos == "SF" ~ "green")
+  ) %>% 
+  as.data.frame()
+
+rownames(nba) <- nba$pos_name
+
+nba_heatmap <- nba %>% 
+  select(FG:PTS) %>% 
+  as.matrix()
+
+heatmap(nba_heatmap, scale="column", 
+        cexRow = 0.4, cexCol = 0.8)
+
+# 1) Changing color
+# 1: native palette from R
+heatmap(nba_heatmap, scale="column", col = cm.colors(256),
+        main = "col = cm.colors(256)")
+heatmap(nba_heatmap, scale="column", col = terrain.colors(156),
+        main = "col = terrain.colors(156)")
+
+# 2: Rcolorbrewer palette
+library(RColorBrewer)
+coul1 <- colorRampPalette(brewer.pal(8, "PiYG"))(25)
+coul2 <- colorRampPalette(brewer.pal(8, "PiYG"))(4)
+heatmap(nba_heatmap, scale="column", col = coul1,
+        main = 'colorRampPalette(brewer.pal(8, "PiYG"))(25)')
+heatmap(nba_heatmap, scale="column", col = coul2, 
+        main = 'colorRampPalette(brewer.pal(8, "PiYG"))(4)')
+
+
+# 3: NBA colors and legend ----
+heatmap(nba_heatmap, scale="column" , 
+        col = colorRampPalette(colors = c("#1d428a", "#c8102e"))(11))
+
+# blue: #1d428a
+# red: #c8102e
+
+# color with white in the middle
+col1 <- colorRampPalette(colors = c("#1d428a", "#ffffff"))(6)[1:5]
+col2 <- colorRampPalette(colors = c("#ffffff", "#c8102e"))(6)
+heatmap(nba_heatmap, scale="column" , 
+        col = c(col1, col2), cexRow=0.6)
+
+
+# 1) Adding row and column side colors
+heatmap(nba_heatmap, scale="column" , 
+        col = c(col1, col2), cexRow=0.8,
+        RowSideColors = nba$side_color,
+        ColSideColors = TopColors)
+legend(x = -0.05, y = 1.08, 
+       legend = c("C - Center","PG - Point Guard", "SG - Shooting Guard", "PF - Power Forward", "SF - Small Forward"),
+       cex = 0.8, 
+       fill = c("red", "blue", "lightblue", "darkgreen", "green"), 
+       border = "black", title = "Position")
+legend(x = 0.9, y = 1.08, 
+       legend = c("Offensive stats", "Defensive stats"), 
+       cex = 0.8, 
+       fill = c("darkgrey", "yellow"), title = "Statistics")
+
+TopColors <- ifelse(attr(nba_heatmap, which = "dimnames")[[2]] %in% c("DRB", "STL", "BLK", "PF"), "yellow", "darkgrey")
+
+
+## 5) Where next?
+
+#https://www.r-graph-gallery.com/283-the-hourly-heatmap.html
+
+#https://jokergoo.github.io/ComplexHeatmap-reference/book/
+
+#https://www.youtube.com/results?search_query=heatmap+in+r
+
+
+
+
+
+##-----------------------------------------##
+#  Heatmaps with geom_tile() and heatmap()  #
+##_________________________________________##
+
+# https://www.https://www.r-graph-gallery.com/heatmap.html
+# https://www.https://www.data-to-viz.com/graph/heatmap.html
+
+rm(list=ls())
+
+# 1) Mapping annual and seasonal temperatures of the US
+
+
+
+
+
+
+
+
+
+
+## 0) Load packages and set theme ----
+rm(list=ls())
+library(ggplot2); library(tidyverse)
+library(dplyr); library(tidyr)
+library(forcats); library(viridis)
+library(plotly); library(RColorBrewer)
+library(lubridate)
+library(scales)
+library(readr)
+library(mapproj)
+theme_set(theme_light())
+
+text12 <- theme(axis.text.x = element_text(size = 12), 
+                axis.text.y = element_text(size = 12),
+                axis.title.x = element_text(size = 12),
+                axis.title.y = element_text(size = 12))
+
+text14 <- theme(axis.text.x = element_text(size = 14), 
+                axis.text.y = element_text(size = 14),
+                axis.title.x = element_text(size = 14),
+                axis.title.y = element_text(size = 14))
+
+text16 <- theme(axis.text.x = element_text(size = 16), 
+                axis.text.y = element_text(size = 16),
+                axis.title.x = element_text(size = 16),
+                axis.title.y = element_text(size = 16))
+
+library(readxl)
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+US_temp_annual <- read_excel(path = "./23_heatmaps/heatmap_data.xlsx",
+                             sheet = "US_temp_annual")
+
+US_temp_seasonal <- read_excel(path = "./23_heatmaps/heatmap_data.xlsx",
+                               sheet = "US_temp_seasonal")
+
+imdb_BrBa <- read_excel(path = "./23_heatmaps/heatmap_data.xlsx",
+                        sheet = "imdb_BrBa")
+
+imdb_GoT <- read_excel(path = "./23_heatmaps/heatmap_data.xlsx",
+                       sheet = "imdb_GoT")
+
+imdb_Ozark <- read_excel(path = "./23_heatmaps/heatmap_data.xlsx",
+                         sheet = "imdb_Ozark")
+
+NBA_total <- read_excel(path = "./23_heatmaps/heatmap_data.xlsx",
+                        sheet = "NBA_total")
+
+NBA_average <- read_excel(path = "./23_heatmaps/heatmap_data.xlsx",
+                          sheet = "NBA_average")
+
+NBA_codebook <- read_excel(path = "./23_heatmaps/heatmap_data.xlsx",
+                           sheet = "NBA_codebook")
+
+path <- "./heatmap_data.xlsx"
+
+all_datasets <- path %>% 
+  excel_sheets() %>% 
+  set_names() %>% 
+  map(read_excel, path = path)
+
+US_temp_annual <- all_datasets$US_temp_annual
+US_temp_seasonal <- all_datasets$US_temp_seasonal
+imdb_BrBa <- all_datasets$imdb_BrBa
+imdb_GoT <- all_datasets$imdb_GoT
+imdb_Ozark <- all_datasets$imdb_Ozark
+NBA_total <- all_datasets$NBA_total
+NBA_average <- all_datasets$NBA_average
+NBA_codebook <- all_datasets$NBA_codebook %>% select(code,explanation)
+
+# prepare the data
+US_temp_annual$temp_F <- parse_number(US_temp_annual$temp_F)
+US_temp_seasonal$temp_F <- parse_number(US_temp_seasonal$temp_F)
+
+
+## 1) US heat map ----
+library(usmap)
+library(readr)
+library(scales)
+
+# basic annual temp map
+plot_usmap(data = US_temp_annual, regions = "states",
+           values = "temp_F", labels = TRUE)
+
+# basic annual temp map, advanced
+plot_usmap(data = US_temp_annual, regions = "states",
+           values = "temp_F", labels = TRUE) +
+  scale_fill_continuous(low = "green", high = "red", name = "Temperature in °F", label = scales::comma) + 
+  labs(title = "United States average annual temperature [°F]") +
+  theme(legend.position = "right")
+
+plot_usmap(data = US_temp_annual, regions = "states", exclude = c("Alaska", "Hawaii"),
+           values = "temp_F", labels = TRUE) +
+  scale_fill_stepsn(n.breaks = 7, colors = c("lightgreen", "red"), name = "Temperature in °F") + 
+  labs(title = "United States average annual temperature [°F]",
+       subtitle = "Excluding Alaska and Hawaii") +
+  theme(legend.position = "right")
+
+## 1b) Facet wrap seasons ----
+
+View(US_temp_seasonal)
+
+library(forcats)
+US_temp_seasonal <- US_temp_seasonal %>% 
+  mutate(season = factor(season, levels = c("spring", "summer", "fall", "winter")))
+
+plot_usmap(data = US_temp_seasonal, regions = "states", exclude = c("Alaska", "Hawaii", "DC"),  values = "temp_F") +
+  facet_wrap(~ season, ncol = 2)+
+  scale_fill_stepsn(n.breaks = 12, colors = c("lightgreen", "red"), name = "Temperature in °F") + 
+  labs(title = "United States average seasonal temperatures [°F]",
+       subtitle = "Excluding Alaska and Hawaii") +
+  theme(legend.position = "right")
+
+
+# 1c) Celcius ----
+US_temp_seasonal <- US_temp_seasonal %>% 
+  mutate(temp_C = (temp_F -32) *5/9)
+
+plot_usmap(data = US_temp_seasonal, regions = "states", exclude = c("Alaska", "Hawaii", "DC"),  values = "temp_C") +
+  facet_wrap(~ season, ncol = 2)+
+  scale_fill_stepsn(n.breaks = 10, colors = c("lightgreen", "red"), name = "Temperature in °C") + 
+  labs(title = "United States average seasonal temperatures [°C]",
+       subtitle = "Excluding Alaska and Hawaii") +
+  theme(legend.position = "right")
+
+
+## 2) imdb ratings ----
+imdb_BrBa_long <- imdb_BrBa %>% pivot_longer(-Episode) %>% 
+  set_names(c("episode", "season", "rating")) %>% 
+  mutate(rating = rating/10)
+imdb_GoT_long <- imdb_GoT %>% pivot_longer(-Episode) %>% set_names(c("episode", "season", "rating")) %>% mutate(rating = rating/10)
+imdb_Ozark_long <- imdb_Ozark %>% pivot_longer(-Episode) %>% set_names(c("episode", "season", "rating")) %>% mutate(rating = rating/10)
+
+
+## 2a) numbers only ----
+
+# breaking bad (white)
+imdb_BrBa_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(fill = "white", color = "grey") +
+  geom_text() +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") 
+
+# game of thrones (white)
+imdb_GoT_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(fill = "white", color = "grey") +
+  geom_text() +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  text12 -> GoT_blank
+
+## 2b) adding colors ----
+
+imdb_BrBa_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_continuous(low = "orange", high = "darkgreen", name = "imdb rating") + 
+  #scale_fill_gradient2(low="orange", high="darkgreen", guide="colorbar")
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  text12 -> BrBa_color
+
+#scale_fill_gradient2(low="orange", 
+high="darkgreen", 
+guide="colorbar")
+
+imdb_GoT_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_continuous(low = "orange", high = "darkgreen", name = "imdb rating") + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  text12 -> GoT_color
+
+## 2c) setting colors to fixed values for comparisons ----
+# problem of different min-max even though same average gives misleading color maps
+# 2 solutions - 1/2 combine data sets
+imdb_rating_combined <- imdb_BrBa_long %>% 
+  mutate(series = "Breaking Bad") %>% 
+  rbind(imdb_GoT_long %>% 
+          mutate(series = "Game of Thrones"))
+
+imdb_rating_combined %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_continuous(low = "orange", high = "darkgreen", name = "imdb rating") + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  #  facet_wrap(~ series)
+  facet_wrap(~ series, scales = "free_x")
+
+
+# 2/2 - fixing the scale
+# quick tip to save somecoding space
+
+# store evrything that is fixed and set in an plot object
+BrBa_plot <- imdb_BrBa_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  text12 
+
+BrBa_plot + scale_fill_continuous(low = "orange", high = "darkgreen", 
+                                  name = "imdb rating", 
+                                  limits = c(7,10))
+
+# color wheel
+#66F04A
+#F7F740
+#E0BA46
+#F79640
+#F04B35
+BrBa_plot + scale_fill_gradient2(low = "#F79640", mid = "#F7F740", high = "#368028", 
+                                 name = "imdb rating", midpoint = 7,
+                                 limits = c(4,10))
+
+imdb_GoT_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_continuous(low = "orange", high = "darkgreen", 
+                        name = "imdb rating", 
+                        limits = c(7,10)) + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  text12 -> GoT_color_fixed_scale
+
+# Ozark (color, fixed scale)
+imdb_Ozark_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_continuous(low = "orange", high = "darkgreen", 
+                        name = "imdb rating", 
+                        limits = c(7,10))  + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  text12 -> ozark_color_fixed_scale
+
+# solution for low GoT scores, midpoint solution set to 7 (orange) but low to 4 red
+imdb_GoT_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_gradient2(low = "red", mid = "orange", high = "darkgreen", 
+                       name = "imdb rating", midpoint = 7,
+                       limits = c(4,10)) + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  text12
+
+# show in After effects and talk over
+imdb_BrBa_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_gradient2(low = "red", mid = "orange", high = "darkgreen", 
+                       name = "imdb rating", midpoint = 7,
+                       limits = c(4,10)) + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  text12
+
+imdb_Ozark_long %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_gradient2(low = "red", mid = "orange", high = "darkgreen", 
+                       name = "imdb rating", midpoint = 7,
+                       limits = c(4,10)) + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  text12
+
+
+imdb_rating_combined2 <- imdb_rating_combined %>% 
+  rbind(imdb_Ozark_long %>% 
+          mutate(series = "Ozark"))
+
+imdb_rating_combined2 %>% 
+  ggplot(aes(x = season, y = episode, 
+             label = rating, fill = rating)) +
+  geom_tile(color = "grey") +
+  scale_fill_continuous(low = "orange", high = "darkgreen", name = "imdb rating") + 
+  geom_text(color = "white") +
+  scale_y_discrete(limits = rev) + 
+  scale_x_discrete(position = "top") +
+  #  facet_wrap(~ series)
+  facet_wrap(~ series, scales = "free_x")
+
+# 2d) fixing the ugly color palettes
+colours = colorRampPalette(c("red", "white", "green"))(11) #grDevices
+colorRampPalette(c("red", "orange", "green"))(3) #grDevices
+
+#https://color.adobe.com/de/create
+
+
+## 3) heatmap() basics with mtcars ----
+## 1) Most Basic Heatmap
+#The heatmap() function is natively provided in R and has tools to normalize input data, run clustering algorithm and visualize the result with dendrograms.
+
+#How to do it: below is the most basic heatmap you can build in base R, using the heatmap() function with no parameters. Note that it takes as input a matrix. If you have a data frame, you can convert it to a matrix with as.matrix(), but you need numeric variables only.
+
+#How to read it: each column is a variable. Each observation is a row. Each square is a value, the closer to yellow the higher. You can transpose the matrix with t(data) to swap X and Y axis.
+
+#Note: as you can see this heatmap is not very insightful: all the variation is absorbed by the hp and disp variables that have very high values compared to the others. We need to normalize the data, as explained in the next section.
+
+# The mtcars dataset:
+View(mtcars)
+max(mtcars)
+summary(mtcars)
+data <- as.matrix(mtcars)
+
+# Default Heatmap
+heatmap(x = data) # x = numeric matrix of values to be plotted
+
+data
+# heatmap colors are produced over the whole matrix, highest values are in disp (440) and hp(335) and go down to 0 and 1 for vs and am
+
+
+
+## 2) Normalization and Reordering
+# Normalizing the matrix is done using the scale argument of the heatmap() function. It can be applied to row or to column. Here the column option is chosen, since we need to absorb the variation between column.
+
+# Use 'scale' to normalize
+heatmap(data, scale="column")
+
+# You may have noticed that order of both rows and columns is different compare to the native mtcar matrix. This is because heatmap() reorders both variables and observations using a clustering algorithm: it computes the distance between each pair of rows and columns and try to order them by similarity.
+mtcars
+
+#Moreover, the corresponding dendrograms are provided beside the heatmap. We can avoid it and just visualize the raw matrix: use the Rowv and Colv arguments as follow.
+
+# No dendrogram nor reordering for neither column or row
+heatmap(data, Colv = NA, Rowv = NA, scale="column")
+heatmap(data, Rowv = NA, scale="column")
+
+heatmap(data, scale="column", main = "mtcars dataset", xlab = "car-asteristics")
+
+?heatmap 
+# loads of arguments
+
+## There are several ways to custom the color palette:
+
+#use the native palettes of R: terrain.color(), rainbow(), heat.colors(), topo.colors() or cm.colors()
+#use the palettes proposed by RColorBrewer. See list of available palettes here.
+# https://www.r-graph-gallery.com/38-rcolorbrewers-palettes.html
+
+# 1: native palette from R
+heatmap(data, scale="column", col = cm.colors(256))
+heatmap(data, scale="column", col = terrain.colors(156))
+
+# 2: Rcolorbrewer palette
+library(RColorBrewer)
+coul <- colorRampPalette(brewer.pal(8, "PiYG"))(25)
+coul <- colorRampPalette(brewer.pal(8, "PiYG"))(4)
+heatmap(data, scale="column", col = coul)
+
+## custom layout
+#You can custom title & axis titles with the usual main and xlab/ylab arguments (left).
+
+#You can also change labels with labRow/colRow and their size with cexRow/cexCol.
+
+# Add classic arguments like main title and axis title
+heatmap(data, Colv = NA, Rowv = NA, scale="column", col = coul, xlab="variable", ylab="car", main="heatmap")
+
+# Custom x and y labels with cexRow and labRow (col respectively)
+heatmap(data, scale="column", cexRow=1.5, labRow=paste("new_", rownames(data),sep=""), col= colorRampPalette(brewer.pal(8, "Blues"))(25))
+
+## Add color beside heatmap
+#Often, heatmap intends to compare the observed structure with an expected one.
+
+#You can add a vector of color beside the heatmap to represents the expected structure using the RowSideColors argument.
+
+# Example: grouping from the first letter:
+# Would be better to use price (y-response)
+# maybe look into diamond data set or simulate prices for the cars
+my_group <- as.numeric(as.factor(substr(rownames(data), 1 , 1)))
+my_group2 <- as.numeric(data[, "cyl"])
+my_group3 <- as.character(as.factor(as.numeric(data[, "cyl"])))
+my_group3 <- as.character(data[, "cyl"])
+colSide <- brewer.pal(9, "Set1")[my_group]
+colSide2 <- brewer.pal(9, "Set1")[my_group2]
+colMain <- colorRampPalette(brewer.pal(8, "Blues"))(25) # sets up a color scale and extends it from 1-8 to 25 values
+heatmap(data, Colv = NA, Rowv = NA, scale="column" , RowSideColors=colSide, col=colMain   )
+heatmap(data, Colv = NA, Rowv = NA, scale="column" , RowSideColors=colSide)
+heatmap(data, Colv = NA, Rowv = NA, scale="column" , RowSideColors=colSide2)
+heatmap(data, Colv = NA, Rowv = NA, scale="column" , RowSideColors=my_group3)
+
+#important! the color order will be adjusted correctly with the tree hirachry
+heatmap(data, scale="column" , RowSideColors=my_group3)
+
+
+
+
+## 4) heatmap() with NBA ----
+
+nba_average_BU <- NBA_average
+nba_total_BU <- NBA_total
+
+dim(NBA_total); str(NBA_total); 
+View(NBA_total); View(NBA_average)
+
+library(readr)
+
+parse_number(NBA_average)
+mutate_cols <- NBA_average %>% select(Age, G:PTS) %>% names()
+NBA_average <- NBA_average %>% 
+  mutate_at(.vars = mutate_cols, .funs = parse_number)
+
+#apply(X = NBA_average, MARGIN = 2, FUN = function(x) parse_number(x))
+
+#a) filter for the top 16 teams that made it to the play-offs
+playoff_teams <- c("PHI", "BRK", "ATL", "MIL", "UTA", "LAC", "PHO", "DEN", "WAS", "BOS", "NYK", "MIA", "MEM", "DAL", "LAL", "POR")
+
+playoff_teams %in% NBA_total$Tm
+playoff_teams %in% NBA_average$Tm
+
+
+#b) filter for players that played at least 60 games during the main season
+NBA_average %>% ggplot(aes(x = G)) + geom_histogram(bins = 50, fill = "grey", color = "black")
+table(table(NBA_average$PlayerID))
+NBA_average %>% group_by(PlayerID) %>% summarize(total_games = sum(G)) %>% arrange(desc(total_games)) %>% View()
+NBA_average %>% ggplot(aes(x = GS)) + geom_histogram(bins = 50, fill = "grey", color = "black")
+
+NBA_average %>% ggplot(aes(x = MP)) + geom_histogram(bins = 50, fill = "grey", color = "black")
+
+#c) filter for players that played at least 18 minutes per game 
+NBA_average %>% 
+  filter(MP > 18, G >= 60, 
+         Tm %in% playoff_teams) %>% count(Pos)
+
+NBA_average %>% 
+  filter(MP > 18, G >= 60, 
+         Tm %in% playoff_teams) %>% 
+  arrange(desc(PTS)) %>% View()
+
+#d) add position info to the player name ("new_name"), look up heatmap function
+#e) add color to position info (2 blues for PG, SG, 2 greens for SF, PF, orange for C)
+nba <- NBA_average %>% 
+  filter(MP > 18, G >= 60, 
+         Tm %in% playoff_teams) %>% 
+  mutate(pos_name = paste(Pos, Player, sep = " - "),
+         side_color = case_when(
+           Pos == "C" ~ "red",
+           Pos == "PG" ~ "blue", 
+           Pos == "SG" ~ "lightblue", 
+           Pos == "PF" ~ "darkgreen", 
+           Pos == "SF" ~ "green")
+  ) %>% 
+  as.data.frame()
+rownames(nba) <- nba$pos_name
+
+nba_heatmap <- nba %>% select(FG:PTS) %>% as.matrix()
+
+heatmap(nba_heatmap, scale="column"
+        # 1: native palette from R
+        heatmap(data, scale="column", col = cm.colors(256))
+        heatmap(data, scale="column", col = terrain.colors(156))
+        
+        # 2: Rcolorbrewer palette
+        library(RColorBrewer)
+        coul <- colorRampPalette(brewer.pal(8, "PiYG"))(25)
+        coul <- colorRampPalette(brewer.pal(8, "PiYG"))(4)
+        heatmap(data, scale="column", col = coul)
+        
+        heatmap(nba_heatmap, scale="column" , RowSideColors=nba$side_color, cexRow=0.6)
+        
+        # 4b) NBA colors and legend ----
+        heatmap(nba_heatmap, scale="column" , 
+                col = colorRampPalette(colors = c("#1d428a", "#c8102e"))(11),
+                RowSideColors=nba$side_color, cexRow=0.6)
+        # blue: #1d428a
+        # red: #c8102e
+        
+        # color with white in the middle
+        col1 <- colorRampPalette(colors = c("#1d428a", "#ffffff"))(6)[1:5]
+        col2 <- colorRampPalette(colors = c("#ffffff", "#c8102e"))(6)
+        heatmap(nba_heatmap, scale="column" , 
+                col = c(col1, col2),
+                RowSideColors=nba$side_color, cexRow=0.6)
+        
+        colorRampPalette(colors = c("#c8102e", "#1d428a"))(9)
+        col = cm.colors(256)
+        heatmap(nba_heatmap, scale="column" , 
+                #col = cm.colors(256),
+                #col = colorRampPalette(colors = c("#c8102e", "#1d428a"))(9)
+                col = col = c(col1, col2),
+                RowSideColors=nba$side_color, cexRow=0.6) + 
+          legend("top", legend = c("C - Center","PG - Point Guard", "SG - Shooting Guard", "PF - Power Forward", "SF - Small Forward"),
+                 cex = 0.8, fill = c("red", "blue", "lightblue", "darkgreen", "green"), border = "black", title = "Position")
+        # build legend, with legend() function
+        # postion, category, text cex and color, easy for position, fair enough,
+        # could be extended to column colors, (field goal categories, percentages,defense actions like block or steal and def-rebound)
+        #!RowSideColors also exists for ColSideColors!
+        ?legend
+        attr(nba_heatmap, which = "dimnames")[[2]]
+        TopColors <- ifelse(attr(nba_heatmap, which = "dimnames")[[2]] %in% c("DRB", "STL", "BLK", "PF"), "yellow", "darkgrey")
+        heatmap(nba_heatmap, scale="column" , 
+                #col = cm.colors(256),
+                #col = colorRampPalette(colors = c("#c8102e", "#1d428a"))(9)
+                col = c(col1, col2),
+                RowSideColors = nba$side_color, 
+                ColSideColors = TopColors,
+                cexRow=0.6)
+        legend("topleft", legend = c("C - Center","PG - Point Guard", "SG - Shooting Guard", "PF - Power Forward", "SF - Small Forward"),
+               cex = 0.8, fill = c("red", "blue", "lightblue", "darkgreen", "green"), border = "black", title = "Position")
+        legend("topright", legend = c("Offensive stats", "Defensive stats"), cex = 0.8, fill = c("darkgrey", "yellow"), title = "Statistics")
+        
+        
+        ## Thumbnail imdb ----
+        imdb_BrBa_long %>% 
+          filter(season %in% c("S01","S02","S03","S04", "S05"),
+                 episode %in% c("Ep01","Ep02","Ep03","Ep04", "Ep05", "Ep06","Ep07")) %>% 
+          ggplot(aes(x = season, y = episode, 
+                     label = rating, fill = rating)) +
+          geom_tile(color = "grey") +
+          scale_fill_gradient2(low = "red", mid = "orange", high = "darkgreen", 
+                               name = "imdb rating", midpoint = 7,
+                               limits = c(4,10)) + 
+          geom_text(color = "white") +
+          scale_y_discrete(limits = rev) + 
+          scale_x_discrete(position = "top")
+        
+        
+        ## Thumbnail NBA ----
+        players <- c("Bradley Beal", "Damian Lillard", "Nikola Jokic", "Stephen Curry", "Joel Embiid", "LeBron James")
+        stats <- c("PTS", "TRB", "3P%", "2P%", "FT%", "BLK", "STL")
+        nba2 <- NBA_average %>% 
+          filter(Player %in% players) %>% 
+          mutate(pos_name = paste(Pos, Player, sep = " - "),
+                 side_color = case_when(
+                   Pos == "C" ~ "red",
+                   Pos == "PG" ~ "blue", 
+                   Pos == "SG" ~ "lightblue", 
+                   Pos == "PF" ~ "darkgreen", 
+                   Pos == "SF" ~ "green")
+          ) %>% 
+          as.data.frame()
+        rownames(nba2) <- nba2$pos_name
+        
+        
+        
+        nba_heatmap2 <- as.matrix(nba2[, stats])
+        heatmap(nba_heatmap2, scale="column" , 
+                col = c(col1, col2[2:6]))
+        
+        # annotation and legend
+        #https://github.com/LeahBriscoe/AdvancedHeatmapTutorial/blob/master/AdvancedHeatmapTutorial.R
+        #https://www.youtube.com/watch?v=T7_j444LMZs
+        
+        
+        
+        
+        #heatmap(data, Colv = NA, Rowv = NA, scale="column", col = coul, xlab="variable", ylab="car", main="heatmap")
+        # Custom x and y labels with cexRow and labRow (col respectively)
+        #heatmap(data, scale="column", cexRow=1.5, labRow=paste("new_", rownames(data),sep=""), col= colorRampPalette(brewer.pal(8, "Blues"))(25))
+        
+        
+        
+        ## 5) only show examples for other heatmaps and packages (2 year season temps r-gallery, special book on genetics)
+        
+        
+        ## 5 special color functions ----
+        #!move to separate color guide video
+        
+        
+        
+        
+        
+        
+        
+        
+        # 4) Heatmaps using geom_tile() ----
+        #ggplot2 also allows to build heatmaps thanks to geom_tile(). However, I personally prefer the heatmap() function above since only it offers option for normalization, clustering and Dendrogram.
+        
+        # This is the most basic heatmap you can build with R and ggplot2, using the geom_tile() function.
+        # 
+        # Input data must be a long format where each row provides an observation. At least 3 variables are needed per observation:
+        #   
+        #   x: position on the X axis
+        # y: position on the Y axis
+        # fill: the numeric value that will be translated in a color
+        
+        # Dummy data
+        x <- LETTERS[1:20]
+        y <- paste0("var", seq(1,20))
+        data <- expand.grid(X=x, Y=y)
+        data$Z <- runif(400, 0, 5)
+        
+        # Heatmap 
+        ggplot(data, aes(X, Y, fill= Z)) + 
+          geom_tile()
+        
+        # 5) Color geom_tile() ----
+        # Color palette can be changed like in any ggplot2 chart. Above are 3 examples using different methods:
+        #   
+        #   scale_fill_gradient() to provide extreme colors of the palette
+        # scale_fill_distiller) to provide a ColorBrewer palette
+        # scale_fill_viridis() to use Viridis. Do not forget discrete=FALSE for a continuous variable.
+        # Dummy data
+        x <- LETTERS[1:20]
+        y <- paste0("var", seq(1,20))
+        data <- expand.grid(X=x, Y=y)
+        data$Z <- runif(400, 0, 5)
+        
+        # Give extreme colors:
+        ggplot(data, aes(X, Y, fill= Z)) + 
+          geom_tile() +
+          scale_fill_gradient(low="white", high="blue") 
+        
+        
+        # Color Brewer palette
+        ggplot(data, aes(X, Y, fill= Z)) + 
+          geom_tile() +
+          scale_fill_distiller(palette = "RdPu") 
+        
+        
+        # Color Brewer palette
+        library(viridis)
+        ggplot(data, aes(X, Y, fill= Z)) + 
+          geom_tile() +
+          scale_fill_viridis(discrete=FALSE) 
+        
+        ## From wide input format (instead of long)
+        # It is a common issue to have a wide matrix as input, as for the volcano dataset. In this case, you need to tidy it with the gather() function of the tidyr package to visualize it with ggplot.
+        
+        # Heatmap 
+        volcano %>%
+          
+          # Data wrangling
+          as_tibble() %>%
+          rowid_to_column(var="X") %>%
+          gather(key="Y", value="Z", -1) %>%
+          
+          # Change Y to numeric
+          mutate(Y=as.numeric(gsub("V","",Y))) %>%
+          
+          # Viz
+          ggplot(aes(X, Y, fill= Z)) + 
+          geom_tile() #+
+        #theme(legend.position="none")
+        
+        
+        
+        

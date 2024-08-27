@@ -1,0 +1,9 @@
+"0","search_unique_hit %>% "
+"0","  ggplot(aes(x = members_n, fill = access)) +"
+"0","  geom_histogram(show.legend = FALSE, color = ""darkgrey"") + "
+"0","  scale_x_log10() +"
+"0","  facet_wrap(~access, nrow = 2) +"
+"0","  theme_minimal() +"
+"0","  labs(x=""Members (log10"")"
+"2","Error in default[missing] : object of type 'closure' is not subsettable
+"

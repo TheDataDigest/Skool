@@ -1,0 +1,355 @@
+
+## 1) datapasta ----
+install.packages("datapasta")
+library(datapasta)
+
+#https://www.topendsports.com/events/summer/medal-tally/all-time-all.htm
+
+olympic_medals <- data.frame(
+  stringsAsFactors = FALSE,
+       check.names = FALSE,
+                                Rank = c(1L,2L,3L,4L,5L,6L,7L,8L,9L,
+                                         10L,11L,12L,13L,14L,15L,16L,
+                                         17L,18L,19L,20L,21L,22L,23L,24L,
+                                         25L,26L,27L,28L,29L,30L,31L,32L,
+                                         33L,34L,35L,36L,37L,38L,39L,40L,
+                                         41L,42L,43L,44L,45L,46L,47L,48L,
+                                         49L,50L,51L,52L,53L,54L,55L,
+                                         56L,57L,58L,59L,60L,61L,62L,63L,
+                                         64L,65L,66L,67L,68L,69L,70L,71L,
+                                         72L,73L,74L,75L,76L,77L,78L,79L,
+                                         80L,81L,82L,83L,84L,85L,86L,87L,
+                                         88L,89L,90L,91L,92L,93L,94L,
+                                         95L,96L,97L,98L,99L,100L,101L,102L,
+                                         103L,104L,105L,106L,107L,108L,
+                                         109L,110L,111L,112L,113L,114L,115L,
+                                         116L,117L,118L,119L,120L,121L,
+                                         122L,123L,124L,125L,126L,127L,128L,
+                                         129L,130L,131L,132L,133L,134L,
+                                         135L,136L,137L,138L,139L,140L,141L,
+                                         142L,143L,144L,145L,146L,147L),
+                      `Nation.(NOC)` = c("United States","Soviet Union",
+                                         "Germany","Great Britain","China",
+                                         "France","Italy","Hungary","Russia",
+                                         "Japan","Australia","East Germany",
+                                         "Sweden","Finland","South Korea",
+                                         "Netherlands","Romania","Cuba","Poland",
+                                         "Canada","Norway","Bulgaria",
+                                         "Switzerland","New Zealand","Czechoslovakia",
+                                         "Denmark","Spain","Belgium",
+                                         "Türkiye","Brazil","Ukraine","Greece",
+                                         "Kenya","Yugoslavia","South Africa",
+                                         "Jamaica","Iran","Ethiopia","Argentina",
+                                         "Austria","Czechia","North Korea",
+                                         "Kazakhstan","Croatia","Belarus",
+                                         "Mexico","Ireland","Georgia",
+                                         "Uzbekistan","Estonia","Thailand","India",
+                                         "Slovakia","Egypt","Indonesia",
+                                         "Slovenia","Mixed team","Bahamas",
+                                         "Azerbaijan","Chinese Taipei","Morocco",
+                                         "Lithuania","Serbia","Colombia","Portugal",
+                                         "Algeria","Tunisia","Latvia",
+                                         "Uganda","Nigeria","Venezuela",
+                                         "Trinidad and Tobago","Israel",
+                                         "Dominican Republic","Pakistan","Zimbabwe","Cameroon",
+                                         "Ecuador","Kosovo","Mongolia",
+                                         "Armenia","Chile","Puerto Rico",
+                                         "Uruguay","Hong Kong","Qatar","Fiji",
+                                         "Bahrain","Philippines",
+                                         "Independent Olympic Athletes/Participants","Singapore",
+                                         "Vietnam","Costa Rica","Peru",
+                                         "Ivory Coast","Tajikistan","Syria",
+                                         "Grenada","Panama","Jordan","Suriname",
+                                         "Bermuda","Mozambique","Burundi",
+                                         "Luxembourg","United Arab Emirates",
+                                         "Malaysia","Kyrgyzstan","Moldova","Ghana",
+                                         "Namibia","Bohemia","Iceland",
+                                         "Saudi Arabia","Lebanon","San Marino",
+                                         "Kuwait","Sri Lanka",
+                                         "Serbia and Montenegro","Haiti","North Macedonia",
+                                         "Niger","Zambia","British West Indies",
+                                         "Botswana","Tanzania","Afghanistan",
+                                         "Iraq","Sudan","Cyprus","Senegal",
+                                         "Samoa","Guyana","Guatemala","Paraguay",
+                                         "Netherlands Antilles","Gabon",
+                                         "Barbados","Montenegro","Mauritius",
+                                         "Eritrea","Burkina Faso","Virgin Islands",
+                                         "Djibouti","Turkmenistan","Tonga",
+                                         "Togo"),
+                        No..of.Games = c(28L,10L,25L,29L,11L,29L,28L,
+                                         27L,10L,23L,29L,5L,28L,26L,18L,
+                                         27L,22L,21L,22L,27L,26L,21L,29L,
+                                         24L,16L,28L,24L,27L,23L,23L,7L,
+                                         29L,15L,18L,20L,18L,17L,14L,
+                                         25L,28L,7L,10L,7L,8L,7L,24L,22L,
+                                         7L,7L,13L,17L,25L,7L,23L,16L,8L,
+                                         3L,17L,7L,15L,15L,10L,5L,20L,
+                                         25L,14L,15L,12L,16L,17L,19L,18L,
+                                         17L,15L,18L,14L,15L,15L,2L,14L,
+                                         7L,24L,19L,22L,17L,10L,15L,10L,
+                                         22L,4L,17L,16L,16L,19L,14L,7L,
+                                         14L,10L,18L,11L,13L,19L,11L,7L,
+                                         24L,10L,14L,7L,7L,15L,8L,3L,21L,
+                                         12L,18L,15L,13L,18L,1L,16L,7L,
+                                         13L,14L,1L,11L,14L,15L,15L,13L,
+                                         11L,15L,10L,18L,15L,13L,13L,11L,
+                                         13L,4L,10L,6L,10L,13L,9L,7L,
+                                         10L,11L),
+                                Gold = c(1061L,440L,285L,285L,262L,
+                                         226L,217L,181L,170L,169L,167L,153L,
+                                         148L,101L,96L,95L,90L,85L,72L,
+                                         71L,60L,54L,53L,53L,49L,48L,48L,
+                                         43L,41L,37L,35L,35L,35L,28L,27L,
+                                         26L,24L,23L,21L,19L,19L,16L,15L,
+                                         14L,13L,13L,11L,10L,10L,10L,10L,
+                                         10L,10L,8L,8L,8L,8L,8L,7L,7L,
+                                         7L,6L,6L,5L,5L,5L,5L,4L,4L,3L,
+                                         3L,3L,3L,3L,3L,3L,3L,3L,3L,
+                                         2L,2L,2L,2L,2L,2L,2L,2L,2L,1L,
+                                         1L,1L,1L,1L,1L,1L,1L,1L,1L,1L,
+                                         1L,1L,1L,1L,1L,1L,1L,0L,0L,0L,
+                                         0L,0L,0L,0L,0L,0L,0L,0L,0L,
+                                         0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,
+                                         0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,
+                                         0L,0L,0L,0L,0L,0L,0L,0L,0L),
+                              Silver = c(836L,357L,326L,315L,199L,258L,
+                                         188L,154L,157L,150L,177L,129L,
+                                         176L,85L,91L,104L,97L,71L,89L,
+                                         108L,51L,88L,79L,33L,49L,78L,72L,
+                                         54L,26L,42L,36L,45L,42L,31L,33L,
+                                         36L,23L,12L,26L,34L,21L,16L,21L,
+                                         13L,30L,24L,10L,12L,6L,9L,8L,
+                                         9L,14L,11L,14L,9L,4L,2L,14L,11L,
+                                         5L,7L,7L,13L,9L,4L,3L,11L,4L,
+                                         11L,7L,5L,1L,5L,3L,4L,1L,2L,0L,
+                                         11L,8L,7L,2L,2L,3L,1L,0L,1L,
+                                         5L,1L,2L,3L,1L,3L,1L,1L,1L,1L,
+                                         0L,1L,0L,0L,0L,1L,1L,0L,8L,3L,
+                                         2L,1L,5L,1L,2L,2L,2L,1L,0L,
+                                         2L,2L,1L,1L,1L,1L,0L,1L,2L,0L,
+                                         0L,1L,1L,1L,1L,0L,1L,1L,1L,1L,
+                                         0L,1L,0L,0L,0L,1L,0L,1L,1L,0L),
+                              Bronze = c(739L,325L,363L,315L,173L,280L,
+                                         213L,176L,178L,178L,213L,127L,
+                                         179L,119L,100L,122L,121L,85L,137L,
+                                         147L,49L,82L,73L,53L,45L,79L,
+                                         47L,58L,37L,71L,68L,41L,36L,31L,
+                                         29L,25L,29L,23L,30L,41L,27L,22L,
+                                         36L,14L,42L,36L,14L,18L,20L,17L,
+                                         17L,14L,8L,19L,15L,11L,4L,6L,
+                                         28L,18L,12L,13L,11L,15L,14L,8L,
+                                         7L,6L,3L,13L,9L,11L,9L,4L,4L,1L,
+                                         2L,0L,0L,17L,8L,4L,6L,6L,4L,
+                                         5L,1L,0L,8L,3L,2L,1L,2L,0L,2L,
+                                         2L,2L,1L,2L,1L,1L,1L,1L,0L,0L,
+                                         1L,5L,4L,4L,4L,0L,3L,2L,2L,
+                                         2L,2L,3L,0L,0L,1L,1L,1L,1L,2L,
+                                         1L,0L,2L,1L,0L,0L,0L,0L,1L,0L,
+                                         0L,0L,0L,1L,0L,1L,1L,1L,0L,1L,
+                                         0L,0L,1L),
+                               Total = c(2636L,1122L,974L,915L,634L,
+                                         764L,618L,511L,505L,497L,557L,409L,
+                                         503L,305L,287L,321L,308L,241L,
+                                         298L,326L,160L,224L,205L,139L,143L,
+                                         205L,167L,155L,104L,150L,139L,
+                                         121L,113L,90L,89L,87L,76L,58L,77L,
+                                         94L,67L,54L,72L,41L,85L,73L,35L,
+                                         40L,36L,36L,35L,35L,32L,38L,
+                                         37L,28L,16L,14L,49L,36L,24L,26L,
+                                         24L,33L,28L,17L,15L,21L,11L,27L,
+                                         19L,19L,13L,12L,10L,8L,6L,5L,3L,
+                                         30L,18L,13L,10L,10L,9L,8L,3L,
+                                         3L,14L,5L,5L,5L,4L,4L,4L,4L,4L,
+                                         3L,3L,3L,2L,2L,2L,2L,2L,2L,
+                                         13L,7L,6L,5L,5L,4L,4L,4L,4L,3L,
+                                         3L,2L,2L,2L,2L,2L,2L,2L,2L,2L,
+                                         2L,1L,1L,1L,1L,1L,1L,1L,1L,
+                                         1L,1L,1L,1L,1L,1L,1L,1L,1L,1L,
+                                         1L,1L)
+                  )
+  
+str(olympic_medals)
+
+
+
+## 2) basic webscraping ----
+install.packages("rvest")
+library(rvest)
+
+url <- "https://cran.r-project.org/web/packages/available_packages_by_name.html"
+
+html_page <- read_html(x = url)
+
+# Extract the table
+CRAN_packages <- html_page %>% 
+  html_node(xpath = '//table') %>%
+  html_table()
+
+View(CRAN_packages)
+
+names(CRAN_packages) <- c("name", "description")
+
+CRAN_packages <- na.omit(CRAN_packages)
+str(CRAN_packages)
+
+
+## 3) static loop ----
+reference_df <- data.frame( id = 1:4,
+                            code = c("GER","ESP","ITA","FRA"),
+                            country = c("Germany", "Spain", "Italy", "France"),
+                            url = c("https://www.transfermarkt.com/germany/kader/verein/3262/saison_id/2023/plus/1",
+                                    "https://www.transfermarkt.com/spain/kader/verein/3375/saison_id/2023/plus/1",
+                                    "https://www.transfermarkt.com/italy/kader/verein/3376/saison_id/2023/plus/1",
+                                    "https://www.transfermarkt.com/france/kader/verein/3377/saison_id/2023/plus/1")
+)
+
+
+# create a for loop to load the data
+i = 1
+library(tidyverse)
+
+for (i in 1:nrow(reference_df)){
+  temp_url <- reference_df$url[i]
+  
+  # Read the HTML content of the webpage
+  temp_page <- read_html(temp_url)
+  
+  # Extract the table
+  temp_table <- temp_page %>% 
+    html_node(xpath = '//*[@id="yw1"]/table') %>%
+    html_table()
+  
+  #View(temp_table)
+  names(temp_table) <- c("Number", "delete", "delete2", "Name", "Position", "Age", "delete3", "Height", "Foot", "International_matches", "Goals", "Debut", "Market_value")
+  
+  temp_df <- temp_table %>% 
+    select(-contains("delete")) %>% 
+    filter(!is.na(Name)) %>% 
+    mutate(code = reference_df$code[i],
+           country = reference_df$country[i],
+           International_matches = as.numeric(International_matches))
+  
+  
+  if(i == 1){euro24 <- temp_df}
+  if(i > 1){euro24 <- bind_rows(euro24, temp_df)}
+  
+  
+}
+View(euro24)
+
+
+## 4) dynamic loop ----
+# url building
+# and more than one information source
+
+# Load the required libraries
+library(rvest)
+library(dplyr)
+
+# Define the base URL
+base_url <- "https://www.skool.com/discovery?p="
+
+# Initialize empty lists to store the data
+rankings <- list()
+community_names <- list()
+descriptions <- list()
+meta_info <- list()
+
+# Loop through the pages (assuming there are 5 pages)
+for (page_num in 1:5) {
+  # Construct the URL for the current page
+  url <- paste0(base_url, page_num)
+  
+  # Read the HTML content of the webpage
+  temp_page <- read_html(url)
+  
+  # Extract the community name
+  community_names[[page_num]] <- temp_page %>%
+    html_nodes('.styled__TypographyWrapper-sc-m28jfn-0.eoHmvk') %>%
+    html_text()
+  
+  # Extract the ranking
+  rankings[[page_num]] <- temp_page %>%
+    html_nodes('.styled__DiscoveryCardRanking-sc-13ysp3k-6.egeJZg') %>%
+    html_text()
+  
+  # Extract the description
+  descriptions[[page_num]] <- temp_page %>%
+    html_nodes('.styled__DiscoveryCardDescription-sc-13ysp3k-5.dCJqtG') %>%
+    html_text()
+  
+  # Extract the meta information (Private/Public, Members, Paid/Free)
+  meta_info[[page_num]] <- temp_page %>%
+    html_nodes('.styled__DiscoveryCardMeta-sc-13ysp3k-7.jjNZwk') %>%
+    html_text()
+}
+
+# Combine the lists into a single data frame
+data <- data.frame(
+  Ranking = unlist(rankings),
+  Community = unlist(community_names),
+  Description = unlist(descriptions),
+  Meta = unlist(meta_info),
+  stringsAsFactors = FALSE
+)
+
+# Display the extracted data
+View(data)
+
+# Split the "meta" column into "privacy", "members", and "access"
+data <- data %>%
+  separate(Meta, into = c("privacy", "members", "access"), 
+           sep = "  •  ", remove = FALSE)
+
+View(data)
+
+# Create a new column "Numeric_Members" from "Members"
+data <- data %>%
+  mutate(
+    members_cleaned = str_remove(members, " Members"),
+    members_n = case_when(
+      str_detect(members_cleaned, "k") ~ as.numeric(str_remove(members_cleaned, "k")) * 1000,
+      TRUE ~ as.numeric(members_cleaned)),
+    price = parse_number(access))
+
+
+View(data)
+
+
+
+
+
+
+
+## 6) data cleaning ----
+library(tidyverse)
+library(stringr)
+library(janitor)
+library(forcats)
+library(scales)
+
+
+
+## 7) analysis ----
+
+# descriptive
+
+# group by
+
+# chart member and price
+
+# group other (below 30 values), reorder
+
+library(patchwork)  # to make nice charts
+
+
+
+
+
+
+
+
+
+
+
+

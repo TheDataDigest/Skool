@@ -1,0 +1,693 @@
+
+# 1.2 ----
+# Setup: Clear workspace and load packages
+rm(list=ls())
+library(tidyverse)
+library(scales)
+library(ggrepel)
+library(plotly)
+library(broom)
+library(tidytuesdayR)
+theme_set(theme_light())
+text14 <- theme(axis.text.x = element_text(size = 14),
+                axis.text.y = element_text(size = 14))
+
+# Loading the data set:
+#recent_grads <- read.csv("https://github.com/rfordatascience/tidytuesday/blob/master/data/2018/2018-10-16/recent-grads.csv")
+
+
+recent_grads <- read.csv(file = "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-10-16/recent-grads.csv")
+
+library(tidytuesdayR)
+tt_output <- tidytuesdayR::tt_load("2018-10-16")
+readme(tt_output)
+recent_grads <- tt_output$"recent-grads"
+
+
+
+
+
+# 1.3 Description of the dataset ----
+# after 30 minutes he realized that he rather works with a pre-processed data set even though recent grads is already pretty clean
+majors_processed <- recent_grads %>%
+  arrange(desc(Median)) %>%
+  mutate(Major = str_to_title(Major),
+         Major = fct_reorder(Major, Median))
+
+# 3.1 How is the median income distributed ----
+#hist() of median salary
+recent_grads$Median
+hist(recent_grads$Median, main = "hist(recent_grads$Median)")
+options(scipen=999)
+hist(recent_grads$Median, breaks = 20, las=1, main = "hist(recent_grads$Median, breaks = 20, las = 1)")
+hist(recent_grads$Median, breaks = 40, las=1, main = "hist(recent_grads$Median, breaks = 40, las = 1)")
+
+hist(recent_grads$Median, breaks = 40, las=1, main = 'abline(v = median(recent_grads$Median), col = "blue"\nabline(v = mean(recent_grads$Median), col = "red"')
+abline(v = median(recent_grads$Median), col = "blue")
+abline(v = mean(recent_grads$Median), col = "red")
+
+
+#the ggplot() way of median salary
+recent_grads %>% 
+  ggplot(aes(x = Median)) +
+  geom_histogram()
+
+# 3.2. What categories of majors make more money than others ----
+
+# salary by major category in a boxplot - base version
+recent_grads %>% 
+  ggplot(aes(x = Major_category, y = Median)) +
+  geom_boxplot() + 
+  text14
+
+recent_grads %>% 
+  ggplot(aes(y = Major_category, x = Median)) +
+  geom_boxplot() + 
+  text14
+  
+
+recent_grads %>% 
+  ggplot(aes(x = Major_category, y = Median)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, size = 14),
+        axis.text.y = element_text(size = 14))
+
+recent_grads %>% 
+  ggplot(aes(x = Major_category, y = Median)) +
+  geom_boxplot() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 14),
+    axis.text.y = element_text(size = 14))
+
+# Salary by major category in a boxplot - advanced version
+# options(scipen = 999) # avoid scientifc notation, check if necessary
+
+
+recent_grads %>% 
+  ggplot(aes(x = Major_category, y = Median)) +
+  geom_boxplot() +
+  coord_flip()
+
+
+recent_grads %>%
+  mutate(Major_category = 
+           fct_reorder(Major_category, Median)) %>%
+  ggplot(aes(x = Major_category, y = Median)) +
+  geom_boxplot() +
+  scale_y_continuous(labels = dollar_format()) +
+  coord_flip()
+
+
+recent_grads %>%
+  mutate(Major_category = 
+           fct_reorder(Major_category, Median)) %>%
+  ggplot(aes(Major_category, Median, 
+             fill = Major_category)) +
+  geom_boxplot() +
+  coord_flip() +
+  scale_y_continuous(labels = dollar_format()) +
+  expand_limits(y = 0) +
+  theme(legend.position = "none")
+  
+  
+
+# thumbnail graph
+majors_processed %>%
+  mutate(Major_category = fct_reorder(Major_category, Median)) %>%
+  ggplot(aes(Major_category, Median, fill = Major_category)) +
+  geom_boxplot() +
+  scale_y_continuous(labels = dollar_format()) +
+  expand_limits(y = 0) +
+  coord_flip() +
+  theme(legend.position = "none") +
+  text14
+
+# export as transparent png
+majors_processed %>%
+  filter(!Major_category %in% c("Communications & Journalism", "Interdisciplinary", "Law & Public Policy")) %>% 
+  mutate(Major_category = fct_reorder(Major_category, Median)) %>%
+  ggplot(aes(Major_category, Median, fill = Major_category)) +
+  geom_boxplot() +
+  scale_y_continuous(limits = c(20000, 70000),breaks = c(20000,40000,60000), labels = dollar_format()) +
+  coord_flip() +
+  theme(
+  axis.text.x = element_text(size = 16),
+  axis.text.y = element_text(size = 15),
+  legend.position = "none",
+  panel.grid.major = element_blank(), 
+  panel.grid.minor = element_blank(),
+  panel.background = element_rect(fill = "transparent",colour = NA),
+  plot.background = element_rect(fill = "transparent",colour = NA)
+) + 
+  labs(x = "", y = "")
+
+
+
+#ggsave(filename = "E://The Data Digest/Tidy Tuesday Summaries/01 - College major and income/Images/Thumbnail/thumbnail_transparent_3.pdf", tn, bg = "transparent")
+
+
+
+
+# 3.3. Alternative way of showing the difference in Major_categories ----
+# Salary by major category in a boxplot - advanced version
+
+recent_grads %>%
+  group_by(Major_category) %>%
+  summarize(Median = median(Median)) %>%	
+  mutate(Major_category = fct_reorder(Major_category, Median)) %>%
+  ggplot(aes(x = Major_category, y = Median)) +
+  geom_col() +
+  scale_y_continuous(labels = dollar_format()) +
+  coord_flip() +
+  text14
+
+# Boxplot detour ----
+summary(1:100)
+#Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+1.00   25.75   50.50   50.50   75.25  100.00 
+
+
+boxplot(1:100, las = 1, 
+        main = 'boxplot(1:100), las = 1, main = "boxplot(1:100)"') 
+# no points are outside the 1.5x IQR added to the 1st or 3rd quartile
+
+par(mfrow = c(1,2))
+outlier <- c(1:99, 149)
+boxplot(outlier, las=1, main = "c(1:99, 149)")
+summary(outlier)
+outlier2 <- c(1:99, 151)
+boxplot(outlier2, las=1, main = "c(1:99, 151)")
+summary(outlier2)
+
+set.seed(3)
+rnorm_1000 <- rnorm(n = 1000, mean = 0, sd = 1)
+par(mfrow = c(1,2))
+boxplot(rnorm_1000, las = 3) # add image of normal distriubtion
+abline(h=0.67, col = "blue")
+abline(h=-0.67, col = "blue")
+plot(rnorm_1000, las = 3)
+abline(h=0.67, col = "blue")
+abline(h=-0.67, col = "blue")
+
+
+summary(rnorm_1000)
+#Min. 1st Qu. Median Mean 3rd Qu. Max.
+#-3.056328 -0.684539 0.032338 0.006397 0.676673 3.519299
+# in a normal distriubution half the cases are in between 0.67 SD to the left and right of the median
+
+set.seed(3)
+rnorm_1000 <- rnorm(n = 1000, mean = 0, sd = 1)
+summary(rnorm_1000)
+table(rnorm_1000 > -0.67 & rnorm_1000 < 0.67)  
+sum(rnorm_1000 > -0.67 & rnorm_1000 < 0.67)
+
+str(summary(rnorm_1000))
+names(summary(rnorm_1000))
+summary(rnorm_1000)[c(2,5)]
+(IQR <- diff(summary(rnorm_1000)[c(2,5)])) # gives IQR
+
+
+head(sort(rnorm_1000))
+summary(rnorm_1000)["1st Qu."] - (IQR * 1.5)
+
+tail(sort(rnorm_1000))
+IQR * 1.5 + summary(rnorm_1000)["3rd Qu."]
+
+set.seed(3)
+
+boxplot(rnorm_1000, las = 1, ylim = c(2.2, 3.6), main = "boxplot(rnorm_1000, ylim = c(2.2, 3.6))")
+abline(h = 2.718491, lty = 2, lwd = 1)
+abline(h = 2.676632, lty = 2, lwd = 1, col="red")
+points(x = jitter(rep(1, length(rnorm_1000)), factor = 4), y = rnorm_1000, col = "red")
+
+head(sort(rnorm_1000))
+summary(rnorm_1000)["1st Qu."] - (IQR * 1.5)
+
+boxplot(rnorm_1000, las = 1, ylim = c(-3.1, -1.7), main = "boxplot(rnorm_1000, ylim = c(-3.1, -1.7))")
+abline(h = -2.726356, lty = 2, lwd = 1)
+abline(h = -2.665698, lty = 2, lwd = 1, col="red")
+points(x = jitter(rep(1, length(rnorm_1000)), factor = 4), y = rnorm_1000, col = "red")
+
+# 3.4b check boxplots for 4 major categories ----
+boxplot_check <- recent_grads %>% 
+  filter(Major_category %in% c("Engineering", "Business", "Communications & Journalism", "Education")) %>% 
+  group_by(Major_category) %>% 
+  summarise(
+    n = n(), 
+    quantiles = paste(unlist(quantile(Median)), collapse = ", "),
+    values = paste(sort(Median), collapse = ", "))
+View(boxplot_check)
+
+quantile(1:10)
+recent_grads %>% 
+  filter(Major_category == "Engineering") %>% 
+  select(Median) %>% 
+  unlist() %>% 
+  quantile()
+
+recent_grads %>%
+  filter(Major_category %in% c("Engineering", "Business", "Communications & Journalism", "Education")) %>% 
+  mutate(Major_category = fct_reorder(Major_category, Median)) %>%
+  ggplot(aes(x = Major_category, y = Median)) +
+  geom_boxplot() +
+  scale_y_continuous(labels = dollar_format()) +
+  coord_flip() +
+  geom_jitter(shape = 16, position=position_jitter(height = 0.1), col = "red") +
+  text14
+
+# Screenrecording!
+majors_processed %>%
+  filter(Major_category %in% c("Engineering", "Business", "Communications & Journalism", "Education")) %>% 
+  select(Major, Major_category, Median, P25th, P75th) %>% 
+  arrange(Major_category, desc(Median)) %>% 
+  View()
+  
+
+# 3.5. What are the highest earning majors? ----
+# Outlier expaction (along with the graph above), 
+# I have all the screen shots as PDFs.
+recent_grads %>% 
+  arrange(desc(Median)) %>% #already done
+  select(Major, Major_category, Median, P25th, P75th) %>% View()
+# Stress that we don't see the IQR for petroleum engineering in the graph below.
+# Only one dot representing the median.
+
+# base graph of highest earning majors
+recent_grads %>% 
+  arrange(desc(Median)) %>% #already done
+  select(Major, Major_category, Median, P25th, P75th) %>%
+  head(20) %>% 
+  ggplot(aes(x = Major, y = Median)) +
+  geom_point() +
+  coord_flip() # (0) there will be a lot of coord flipping
+# also show without coord_flip() to show that the names overlap
+
+# final graph
+recent_grads %>% 
+  arrange(desc(Median)) %>% #already done
+  select(Major, Major_category, Median, P25th, P75th) %>% 
+  head(20) %>% 
+  mutate(Major = str_to_title(Major), # (4) a lot nicer to look at
+         Major = fct_reorder(Major, Median)) %>% # (1) loads of reordering necessary
+  # otherwise it comes out alphabetically based on Major and top 20 medians
+  ggplot(aes(Major, Median, color = Major_category)) + # (3) to strengthen the conclusion we use another aesthetic
+  geom_point() +
+  geom_errorbar(aes(ymin = P25th, ymax = P75th)) +
+  expand_limits(y = 0) + # (2) otherwise it doesn't start at zero, which geom_col() does.
+  coord_flip()
+
+# Withouth expand_limits, graphs are produced to use the maximum amout of space 
+# to show the details of the data
+par(mfrow = c(2,1))
+plot(51:60, las = 1)
+plot(51:60, ylim=c(0,65), las = 1)
+plot(51:60, type = "h", las = 1)
+plot(51:60, ylim=c(0,65), las = 1, type = "h")
+
+
+# 3.6. What are the lowest earning majors? ----
+majors_processed <- recent_grads %>%
+  arrange(desc(Median)) %>% # descending values
+  # arrange(Median) %>% increasing values is the default
+  select(Major, Major_category, Median, P25th, P75th, Sample_size) %>% 
+  mutate(Major = str_to_title(Major),
+         Major = fct_reorder(Major, Median)) 
+
+majors_processed %>%
+  #  head(20) %>%
+  filter(Sample_size >= 10) %>%  
+  head(20) %>%
+  ggplot(aes(Major, Median, color = Major_category)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = P25th, ymax = P75th)) +
+  expand_limits(y = 0) + # (2) 
+  coord_flip()
+
+# 3.7. Investigating sample size of earnings ----
+
+majors_processed <- recent_grads %>%
+  select(Major, Major_category, Median, P25th, P75th, Sample_size) %>% 
+  mutate(Major = str_to_title(Major),
+         Major = fct_reorder(Major, Median))
+
+majors_processed %>% arrange(Sample_size) %>% 
+  select(Major, Sample_size) %>% View()
+
+majors_processed %>%
+  ggplot(aes(Sample_size, Median)) +
+  geom_point() +
+  geom_text(aes(label = Major), check_overlap = TRUE, 
+            vjust = -.05, hjust = -.05, size = 3) +
+  scale_x_log10(limits = c(1, 15000))
+
+
+# revisit the major earnings graph and add some details:
+majors_processed <- recent_grads %>%
+  select(Major, Major_category, Median, P25th, P75th, Sample_size) %>% 
+  filter(Sample_size >= 50) %>% # or 100
+  mutate(Major = str_to_title(Major),
+         Major = fct_reorder(Major, Median))
+
+majors_processed %>%
+  filter(Sample_size >= 30) %>% 
+#  head(20) %>%
+  tail(20) %>% 
+  ggplot(aes(Major, Median, color = Major_category)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = P25th, ymax = P75th)) +
+  expand_limits(y = 0) + 
+  coord_flip() + 
+   theme(axis.text.x = element_text(size = 13),
+         axis.text.y = element_text(size = 13),
+         legend.text = element_text(size = 13)) +
+  labs(title = "What are the highest-earning majors?",
+       subtitle = "Bottom 20 majors with at least 30 graduates surveyed.
+Bars respresent the 25th to 75th percentile",
+       x = "",
+       y = "Median salary of graduates")
+
+#!? correlation (total vs median, more people studying more competition, smaler wages)
+
+# 3.8. What were the most common majors and categories? ----
+# First we can simply count and sort by n which gets automatically created.
+recent_grads %>%
+  count(Major_category) %>%
+  arrange(desc(n))
+
+# Alternative 1:
+recent_grads %>% count(Major_category, sort = TRUE)
+
+# More accurate (taking the total into account):
+recent_grads %>% 
+  count(Major_category, wt = Total, sort = TRUE) # weight argument
+
+# Classic barplot (with repeating themes, reordering etc.)
+recent_grads %>% 
+  count(Major_category, wt = Total, sort = TRUE) %>%
+  mutate(Major_category = fct_reorder(Major_category, n)) %>%  
+  ggplot(aes(Major_category, n)) +
+  geom_col() + 
+  coord_flip() +
+  labs(x = "",
+       y = "Total # of graduates")
+
+recent_grads %>% 
+  count(Major_category, wt = Total, sort = TRUE) %>%
+  mutate(Major_category = fct_reorder(Major_category, n)) %>%  
+  ggplot(aes(Major_category, n, fill=Major_category)) +
+  geom_col() + 
+  coord_flip() +
+  labs(x = "",
+       y = "Total # of graduates")
+
+recent_grads %>% 
+  count(Major_category, wt = Total, sort = TRUE) %>%
+  mutate(Major_category = fct_reorder(Major_category, n)) %>%  
+  ggplot(aes(Major_category, n, fill = Major_category)) +
+  geom_col() + 
+  coord_flip() +
+  labs(x = "",
+       y = "Total # of graduates") + 
+  theme(legend.position = "none")
+# options(scipen = 999) 
+# avoid scientifc notation, or use labels = comma_format()
+
+# Containing gender information (include by_major_category earlier) # ! FIRST GRAPH
+by_major_category <- recent_grads %>% 
+  mutate(Major_category = fct_reorder(Major_category, Total)) %>%
+  gather(Gender, Number, Men, Women) %>%
+  ggplot(aes(Major_category, Number, fill = Gender)) +
+  geom_col() + 
+  scale_y_continuous(labels = comma_format()) + 
+  coord_flip() +
+  labs(x = "", y = "Total + of graduates by gender", 
+       title = "What are the most common major categories")
+
+# most common majors (not grouped)
+majors_processed %>%
+  mutate(Major = fct_reorder(Major, Total)) %>%
+  arrange(desc(Total)) %>% # Now arrange is necessary, as we are not going by the Median rank but by total students graduating.
+            head(22) %>%
+            ggplot(aes(Major, Total, fill = Major_category)) +
+            geom_col() +
+            coord_flip() +
+            scale_y_continuous(labels = comma_format()) +
+            labs(x = "",
+                 y = "Total # of graduates") +   
+  theme(axis.text.x = element_text(size = 13),
+axis.text.y = element_text(size = 13),
+legend.text = element_text(size = 13))
+#engineering is not even top 20, one reason for higher pays
+
+# 3.9. How does gender breakdown relate to typical earnings? ----
+
+# First approach (majors_processed contains all the columns now)
+gender_1 <- majors_processed %>%
+  gather(key = Gender, value = Number, Men, Women)
+dim(gender_1); dim(majors_processed)
+View(gender_1)
+str(gender_1)
+
+# Second appraoch (producing the graph based on the gathered data)
+# We also add the sorting by most common major and focus on top 20 only
+gender_2 <- majors_processed %>%
+  arrange(desc(Total)) %>%
+  head(26) %>%
+  mutate(Major = fct_reorder(Major, Total)) %>%
+  gather(Gender, Number, Men, Women)
+
+dim(gender_2); View(gender_2) # of course viewer because head(20)
+
+ggplot(data = gender_2, aes(x = Major, y = Number, fill = Gender)) +
+  geom_col() +
+  scale_y_continuous(labels = comma_format()) +
+  coord_flip() +
+  theme(axis.text.x = element_text(size = 13),
+        axis.text.y = element_text(size = 13),
+        legend.text = element_text(size = 13))
+
+gender_2 <- recent_grads %>%
+  arrange(desc(Total)) %>%
+  head(26) %>%
+  mutate(Major = fct_reorder(Major, Total)) %>%
+  gather(key = Gender, value = Number, Men, Women)
+
+dim(gender_2); View(gender_2) 
+
+# point out that more women were in the sample studying overall
+sum(recent_grads$Men, na.rm=T) # 2,876,426
+sum(recent_grads$Women, na.rm=T) # 3,895,228
+
+majors_processed %>% arrange(ShareWomen) %>% View()
+
+majors_processed %>% 
+  group_by(Major_category) %>%
+  summarize_at(vars(Total, Men, Women), sum, na.rm = TRUE) %>% # Add up all numbers for each category.
+  #Agriculture had NAs
+  mutate(ShareWomen = Women / Total) %>% # Had to be recalculated
+  arrange(desc(ShareWomen)) # %>% 
+#  View()
+
+by_major_category <- majors_processed %>% 
+  filter(!is.na(Total)) %>% # now we don't have to use na.rm=T anymore
+  group_by(Major_category) %>%
+  summarize(
+    Men = sum(Men), 
+    Women = sum(Women), 
+    Total = sum(Total), 
+    MedianSalary = median(Median), # This is one way to do it
+    MedianSalaryWT = sum(Median * Sample_size) / sum(Sample_size)) %>%
+  # First David devided by sum(Median), but he noticed it quickly.
+  mutate(ShareWomen = Women / Total) %>% # Had to be recalculated
+  arrange(desc(ShareWomen)) # %>% 
+#  View()
+
+xx <- recent_grads %>% 
+  filter(!is.na(Total)) %>% 
+  mutate(Major = str_to_title(Major)) %>% 
+  select(Major, Major_category, Median, Total, Men, Women, Sample_size) %>% 
+  group_by(Major_category) %>%
+  summarize(
+    Men = sum(Men), 
+    Women = sum(Women), 
+    Total = sum(Total), 
+    MedianSalary = median(Median), # This is one way to do it
+    MedianSalaryWT = sum(Median * Sample_size) / sum(Sample_size)) %>%
+  # First David devided by sum(Median), but he noticed it quickly.
+  mutate(ShareWomen = Women / Total)
+  
+  
+xx %>% filter(Major_category %in% c("Law & Public Policy", "Communications & Journalism", "Arts")) %>% View()
+
+# base:
+by_major_category %>%
+  ggplot(aes(ShareWomen, MedianSalaryWT)) +
+  geom_point()
+  
+  # advanced 1:
+  by_major_category %>%
+  ggplot(aes(ShareWomen, MedianSalaryWT)) +
+  geom_point() +
+  geom_smooth(method = "lm") + 
+  geom_text_repel(aes(label = Major_category), force = .2) +
+  expand_limits(y = 0)
+
+# Major base graph:
+majors_processed %>%
+  ggplot(aes(ShareWomen, Median)) +
+  geom_point() +
+  geom_smooth(method = "lm") + 
+  expand_limits(y = 0)
+
+# Major advanced graph:
+majors_processed %>%
+  # mutate(Major_category = fct_lump(Major_category, 4)) %>%
+  ggplot(aes(ShareWomen, Median, color = Major_category)) +
+  #ggplot(aes(ShareWomen, Median, color = Major_category, size = Sample_size)) +
+  geom_point() +
+geom_smooth(method = "lm") + 
+#  geom_smooth(aes(group = 1), method = "lm") + 
+  expand_limits(y = 0)
+
+# ! fct_lump is a nice functionality I should explain and show, same with size
+
+# interactive graph
+library(plotly)
+g <- majors_processed %>%
+  mutate(Major_category = fct_lump(Major_category, 4)) %>%
+  ggplot(aes(ShareWomen, Median, color = Major_category, size = Sample_size, label = Major)) +
+  geom_point() +
+  geom_smooth(aes(group = 1), method = "lm") +
+  scale_x_continuous(labels = percent_format()) +
+  scale_y_continuous(labels = dollar_format()) +
+  expand_limits(y = 0) +
+  text14
+plotly::ggplotly(g)
+
+g2 <- majors_processed %>%
+  mutate(Major_category = fct_lump(Major_category, 4)) %>%
+  ggplot(aes(ShareWomen, Median, color = Major_category, size = Total, label = Major)) +
+  geom_point() +
+  geom_smooth(aes(group = 1), method = "lm") +
+  scale_x_continuous(labels = percent_format()) +
+  scale_y_continuous(labels = dollar_format()) +
+  expand_limits(y = 0) +
+  text14
+plotly::ggplotly(g2)
+
+# ! fantastic graph, final interactive visualization!
+# Scaling important ($ and %)
+
+# 3.10. Linear model predicting Median ~ ShareWomen ----
+
+# David wants to do a statistical test but is nervous about major_categories and weighting.*
+  
+majors_processed %>%
+  select(Major, Total, ShareWomen, Sample_size, Median)
+# Show data first (View, or Console). 
+
+#majors_processed %>%
+recent_grads %>% 
+  # filter(Sample_size >= 10) %>% # doesn't change much
+  # filter(Major_category == "Health") %>%
+  select(Major, Total, ShareWomen, Sample_size, Median) %>%
+  lm(Median ~ ShareWomen, data = ., weights = Sample_size) %>%
+  summary()
+
+# Changing weights to Total changes R-squared from 36% to 40%
+
+# 3.11. Simpsons Paradox ----
+#Does the correlation als exist in the category of health?
+#One way to look into patterns of discrimination would be to look within each category, does the salary decreases with increasing share of women. (within engineering, within business, within health etc.)
+
+# Health answer: it is actually reversed. Nursing is well payed actually and has high N
+majors_processed %>%
+  filter(Major_category == "Health") %>%
+  select(Major, Total, ShareWomen, Sample_size, Median) %>%
+  lm(Median ~ ShareWomen, data = ., weights = Sample_size) %>%
+  summary()
+
+# Advanced approach
+majors_processed %>%
+  select(Major, Major_category, Total, ShareWomen, Sample_size, Median) %>%
+  add_count(Major_category) %>% # gives number of majors within each category
+  filter(n >= 10) %>%
+  # distinct(Major_categories) # to get the number of remaining categories (n=9)
+  # David calls the next part R-judo, some heavy lifting is coming
+  # Managing many models in R for Data Science book (Hadley Wickham), or R-datacamp, Machine Learning with Tidyvers.
+  nest(-Major_category) %>%
+  mutate(model = map(data, ~ lm(Median ~ ShareWomen, data = ., weights = Sample_size)),
+         tidied = map(model, tidy)) %>%
+  unnest(tidied) %>%
+  filter(term == "ShareWomen") %>%
+  arrange(estimate) %>%
+  mutate(fdr = p.adjust(p.value, method = "fdr"))
+
+
+# 3.12. Summary (of his work, my Q&A comes later) ----
+
+#e looked at three question. generally exploring most common majors, then overall salary and then influence of gender.
+
+majors_processed %>%
+  filter(Sample_size >= 100) %>%
+  mutate(IQR = P75th - P25th) %>%
+  arrange(desc(IQR))
+
+# The ones with the highest gap, are the ones where you can go either academic or business.
+# IQR/median might be a better metric.
+# Lowest ranges make sense because school teacher salaries are highly regulated.
+
+# 7. Rapid Fire questions
+
+# Q1: When I know I want to become an engineer (Major_category), which special area (Major)
+# has the highest percentage of full time employment
+# Unemploymentrate = Unemployed/(Unemployed + Employed)
+# Unemployment_rate
+job_security <- recent_grads %>% 
+  filter(Major_category == "Engineering") %>%
+  arrange(Unemployment_rate) %>%
+  select(Major, Unemployment_rate, Median, ends_with("jobs"))
+
+View(job_security)
+
+# Q1b: What proportion of the jobs are College_jobs, compared to Non_college and Low_wage
+job_security2 <- recent_grads %>% 
+  mutate(Percent_college_job = College_jobs / (College_jobs + Non_college_jobs + Low_wage_jobs),
+         Percent_low_wage_job = Low_wage_jobs / (College_jobs + Non_college_jobs + Low_wage_jobs)) %>% 
+  filter(Major_category == "Engineering") %>%
+  arrange(Unemployment_rate) %>%
+  select(Major, Unemployment_rate, Percent_college_job, Percent_low_wage_job, Median)
+
+# Q3: Grouping by Major_category
+majors_processed %>% 
+  group_by(Major_category) %>% 
+  summarize(median_unemployment_rate = median(Unemployment_rate) * 100) %>% 
+  arrange(mean_unemployment_rate)
+
+
+# Graph: Plot unemployment rate vs. median income by major_category
+majors_processed %>% 
+  filter(Sample_size >= 10) %>%
+  ggplot(aes(x = Unemployment_rate, 
+             y = Median, color = Major_category)) + 
+  geom_point() + 
+  geom_text(aes(label = Major), 
+            check_overlap = TRUE, vjust = -.05, hjust = -.05, size = 4) + 
+  scale_x_continuous(labels = percent_format()) +
+  scale_y_continuous(labels = dollar_format()) +
+  expand_limits(x = c(0, 0.22)) +
+  theme(legend.position = "none")
+
+# Q4: IQR (absolute and relative)
+majors_processed %>% 
+  filter(Sample_size >= 10) %>%
+  mutate(IQR_abs = P75th - P25th,
+         IQR_rel = round(IQR_abs / Median, 2)) %>% 
+  select(Major, Major_category, Median, IQR_abs, IQR_rel, P25th, P75th) %>% 
+  arrange(desc(IQR_rel)) %>% 
+  head(20) %>% View()
+# tail(20)
+# View()
+
+
+

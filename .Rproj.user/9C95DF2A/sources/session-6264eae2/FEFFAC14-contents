@@ -1,0 +1,133 @@
+
+# 0) Setup ----
+library(tidyverse)
+library(rvest)
+library(janitor)
+library(stringr)
+library(readr)
+library(lubridate)
+library(forcats)
+library(scales)
+library(readr)
+
+Sys.setenv(lang = "en_US")
+options(scipen = 999)
+theme_set(new = theme_light())
+
+# helper functions ----
+convert_monetary <- function(monetary_values) {
+  # Convert monetary values to numeric
+  numeric_values <- sapply(monetary_values, function(x) {
+    # Extract the numeric part and unit (m or k)
+    numeric_part <- as.numeric(sub("€([0-9.]+)(m|k)", "\\1", x))
+    unit <- sub("€[0-9.]+(m|k)", "\\1", x)
+    
+    # Convert numeric part based on unit
+    if(unit == "m") {
+      numeric_part <- numeric_part * 1e6  # Multiply by 1 million
+    } else if(unit == "k") {
+      numeric_part <- numeric_part * 1e3  # Multiply by 1 thousand
+    }
+    
+    return(numeric_part)
+  })}
+
+
+# 1) Load data ----
+reference_df <- data.frame( id = 1:24,  group = rep(LETTERS[1:6], each = 4),
+  code = c("GER","SCO","HUN","CHE","ESP","HRV","ITA","ALB","SVN","DEN","SRB","ENG","NED","FRA","POL","AUT","UKR","SVK","BEL","ROU","POR","CZE","GEO","TUR"),
+  country = c("Germany", "Scotland", "Hungary", "Switzerland", "Spain", "Croatia", "Italy", "Albania", "Slovenia", "Denmark", "Serbia", "England", "Netherlands", "France", "Poland", "Austria", "Ukraine", "Slovakia", "Belgium", "Romania", "Portugal", "Czechia", "Georgia", "Turkey"),
+  url = c("https://www.transfermarkt.com/germany/kader/verein/3262/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/scotland/kader/verein/3380/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/hungary/kader/verein/3468/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/switzerland/kader/verein/3384/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/spain/kader/verein/3375/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/croatia/kader/verein/3556/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/italy/kader/verein/3376/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/albania/kader/verein/3561/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/slovenia/kader/verein/3588/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/denmark/kader/verein/3436/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/serbia/kader/verein/3438/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/england/kader/verein/3299/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/netherlands/kader/verein/3379/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/france/kader/verein/3377/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/poland/kader/verein/3442/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/austria/kader/verein/3383/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/ukraine/kader/verein/3699/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/slovakia/kader/verein/3503/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/belgium/kader/verein/3382/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/romania/kader/verein/3447/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/portugal/kader/verein/3300/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/czech-republic/kader/verein/3445/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/georgia/kader/verein/3669/saison_id/2023/plus/1",
+          "https://www.transfermarkt.com/turkiye/kader/verein/3381/saison_id/2023/plus/1")
+)
+
+# create a for loop to load the data
+for (i in 1:24){
+  temp_url <- reference_df$url[i]
+  
+  # use functions to clean up temp data
+  # add group and country info
+  # bind rows 
+  
+  # Read the HTML content of the webpage
+  temp_page <- read_html(temp_url)
+  
+  # Extract the table
+  temp_table <- temp_page %>% 
+    html_node(xpath = '//*[@id="yw1"]/table') %>%
+    html_table()
+  
+  # Print the table
+  #View(table)
+  
+  names(temp_table) <- c("Number", "delete", "delete2", "Name", "Position", "Age", "delete3", "Height", "Foot", "International_matches", "Goals", "Debut", "Market_value")
+  
+  temp_df <- temp_table %>% 
+    select(-contains("delete")) %>% 
+    filter(!is.na(Name)) %>% 
+    mutate(code = reference_df$code[i],
+           country = reference_df$country[i],
+           group = reference_df$group[i]) %>% 
+    mutate(Number = as.numeric(Number),
+           Birth_date = gsub("\\s*\\(.*\\)", "", Age),
+           Birth_date = mdy(Birth_date), 
+           Age = str_extract(Age, "\\((\\d+)\\)"),
+           Age = parse_number(Age),
+           Debut = mdy(Debut),
+           Height_cm = parse_number(Height),
+           Height_m = parse_number(Height)/100,
+           Goals = as.numeric(Goals),
+           International_matches = as.numeric(International_matches)) %>% 
+    mutate(Position_basic = case_when(
+      str_detect(Position, pattern = "Back") ~ "Defense",
+      str_detect(Position, pattern = "Midfield") ~ "Midfield",
+      str_detect(Position, pattern = "Forward") ~ "Forward",
+      str_detect(Position, pattern = "Winger") ~ "Forward",
+      str_detect(Position, pattern = "Striker") ~ "Forward",
+      str_detect(Position, pattern = "Goalkeeper") ~ "Goalkeeper"))
+  
+  temp_df$Position_basic <- factor(temp_df$Position_basic, levels = c("Goalkeeper", "Defense", "Midfield", "Forward"))
+  
+  temp_df$Value <- convert_monetary(temp_df$Market_value)
+  
+  if(i == 1){euro24 <- temp_df}
+  if(i > 1){euro24 <- bind_rows(euro24, temp_df)}
+  
+}
+
+# dim(euro24)
+# View(euro24)
+
+# fixing data issues:
+# PORTUGAL has multiple players with same number
+euro24 %>% filter(code == "POR") %>% arrange(Number)
+
+
+# save.image(file = "euro2024.RData")
+# Save an object to a file
+saveRDS(euro24, file = "euro24.rds")
+
+
+
