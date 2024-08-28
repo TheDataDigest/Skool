@@ -75,6 +75,9 @@ In this article I show what the most common community names are and how they dif
 
 When I check that the search term appears in the community name I have `{r} nrow(search_unique_hit)` unique communities to analyze.
 
+**Academy** is the most common group name with 735 communities.
+![42 group search terms and the number of communities for this analysis"](images/search_table.png)
+
 Most of the groups (91.5%) are set to private. 52.3% are free communities, 37.6% (1395) provided the USD subscription fee and the rest (10.1%) is paid without further details.
 
 Here is an overview:
@@ -86,9 +89,10 @@ intro_table <- search_unique_hit %>% count(privacy, access2) %>%
 knitr::kable(intro_table)
 ```
 
-It shows that we have 1331 communties that provided a price point for their monthly subscription.
+It shows that we have 1331 communties that provided a price point for their monthly subscription. The median price for paid communities is \$48, the average (mean) price is \$106.82.
 
 ### Distribution of membership numbers
+
 
 ```{r, echo=FALSE, message=F}
 free_cut_member <- search_unique_hit %>% filter(access2 == "Free") %>% 
@@ -112,6 +116,8 @@ knitr::kable(member_distribution, align=rep('c', 5))
 ```
 
 The median free community has `r search_unique_hit %>% filter(access2 == "Free") %>% pull(members_n) %>% median()` members, which is 35 more than the paid communities median of `r search_unique_hit %>% filter(access2 != "Free") %>% pull(members_n) %>% median()`.
+
+The average (mean) free community has `r search_unique_hit %>% filter(access2 == "Free") %>% pull(members_n) %>% mean() %>% round(.,1)` members, which is 476 more than the paid communities average of `r search_unique_hit %>% filter(access2 != "Free") %>% pull(members_n) %>% mean() %>% round(.,1)`.
 
 We can visualize the distribution of members in a histogram:
 
@@ -151,7 +157,7 @@ search_unique_hit %>%
 
 There are 28 \$1, 22 \$999 communites but 41 communities with \>\$990 prices. And the \$29 (63x), the \$49 (91x) and the \$99 (74x) are some distinct price options.
 
-## Some group names differ drastically with regards to access (free vs. paid)
+## Some group names differ quite a bit with regards to access (free vs. paid)
 
 ```{r, message=F, echo = FALSE, fig.height=7}
 temp_access <- search_unique_hit %>% group_by(search) %>% add_count() %>% 
@@ -366,27 +372,25 @@ The most common name is "Inner Circle", toggle the boxes below to see some examp
 
 ::: {.callout-note collapse="true" appearance="default"}
 ### Click to see 8 examples of "Inner Circle" and 6 examples of "The Inner Circle"
-
-![5 communities named brotherhood](images/same_name_inner_circle.png)
+![14 communities named "(The) Inner Circle"](images/same_name_inner_circle.png)
 :::
 
 ::: {.callout-note collapse="true" appearance="default"}
 ### Click to see 5 examples of communities named "The Brotherhood"
-
 ![5 communities named brotherhood](images/same_name_brotherhood.png)
 :::
 
 ::: {.callout-note collapse="true" appearance="default"}
-### Click to see 8 examples of "Inner Circle" and 6 examples of "The Inner Circle"
+### Click to 12 examples of "Agency Accelerator"
+![12 exmaples of agency accelerators](images/same_name_agency_accelerator.png)   
+::: 
 
-![5 communities named brotherhood](../../images/same_name_inner_circle.png)
-:::
 
 ::: {.callout-note collapse="true" appearance="default"}
-### Click to see 8 examples of "Inner Circle" and 6 examples of "The Inner Circle"
+### Click to see examples of "The family", "The Elite" and "The Tribe"
+![3 more exmaples of same name communities](images/same_name_family_tribe_elite.png)
+::: 
 
-![5 communities named brotherhood](images/same_name_inner_circle.png)
-:::
 
 ## Communities that show up the most for different search terms
 
@@ -407,7 +411,7 @@ search_BU %>% count(temp) %>% count(n) %>%
                     subtitles = "Histogram of communities appearing on average\nfor the 44 different search terms")
 ```
 
-The most "discovered" community is **Acquisition university** also called *Hormozi Community*. It appeared on 10 different search terms, see table below:
+The most "discovered" community is **Acquisition University** also called *Hormozi Community*. It appeared on 10 different search terms, see table below:
 
 ```{r, warning=F, echo=F}
 multi_hit_groups <- c("Acquisition University", "Elite Influencer Coaching", "Gary Club", "The Digital University")
